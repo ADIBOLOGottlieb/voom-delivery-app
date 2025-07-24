@@ -1,0 +1,74 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.idea
+.recommenders/
+.settings/
+.tm_properties
+.vscode/
+
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+/ios/Pods/
+/ios/Flutter/App.framework
+/ios/Flutter/engine.framework
+/ios/Flutter/flutter_assets/kernel_blob.bin
+/ios/Flutter/flutter_assets/vm_snapshot_data
+/ios/Flutter/flutter_assets/isolate_snapshot_data
+/ios/Flutter/Generated.xcconfig
+/ios/Runner/GeneratedPluginRegistrant.h
+/ios/Runner/GeneratedPluginRegistrant.m
+/ios/Runner.xcworkspace/contents.xcworkspacedata
+/ios/Runner.xcworkspace/xcshareddata/
+/ios/Runner.xcodeproj/project.xcworkspace/
+/ios/Runner.xcodeproj/xcshareddata/
+/ios/Flutter/ephemeral/
+
+# Android
+/android/app/src/main/assets/flutter_assets/kernel_blob.bin
+/android/app/src/main/assets/flutter_assets/vm_snapshot_data
+/android/app/src/main/assets/flutter_assets/isolate_snapshot_data
+/android/app/build/
+/android/.gradle/
+/android/gradle/
+/android/gradlew
+/android/gradlew.bat
+/android/local.properties
+/android/key.properties
+
+# Web
+/web/build/
+/web/.dart_tool/
+
+# Windows
+/windows/build/
+/windows/flutter/ephemeral/
+/windows/runner/Debug/
+/windows/runner/Profile/
+/windows/runner/Release/
+
+# Linux
+/linux/build/
+/linux/flutter/ephemeral/
+
+# macOS
+/macos/build/
+/macos/Flutter/ephemeral/
+
+# Generated files
+/lib/generated_plugin_registrant.dart
+
+# Secrets
+secrets.json
+
