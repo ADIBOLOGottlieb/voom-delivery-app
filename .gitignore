@@ -41,9 +41,6 @@
 /android/app/src/main/assets/flutter_assets/isolate_snapshot_data
 /android/app/build/
 /android/.gradle/
-/android/gradle/
-/android/gradlew
-/android/gradlew.bat
 /android/local.properties
 /android/key.properties
 
@@ -76,3 +73,8 @@ secrets.json
 # Outils locaux
 .dart_tool/
 /android/build/
+
+# Wrapper Gradle : seule la configuration est versionnée (Flutter fournit le reste)
+/android/gradlew
+/android/gradlew.bat
+/android/gradle/wrapper/gradle-wrapper.jar

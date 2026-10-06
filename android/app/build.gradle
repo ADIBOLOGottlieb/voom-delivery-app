@@ -11,12 +11,12 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = JavaVersion.VERSION_17
     }
 
     defaultConfig {
@@ -35,7 +35,8 @@ android {
         if (localPropsFile.exists()) {
             localPropsFile.withReader("UTF-8") { localProps.load(it) }
         }
-        manifestPlaceholders = [MAPS_API_KEY: localProps.getProperty("MAPS_API_KEY", "")]
+        // « += » : ne pas écraser les placeholders injectés par Flutter (applicationName…).
+        manifestPlaceholders += [MAPS_API_KEY: localProps.getProperty("MAPS_API_KEY", "")]
     }
 
     buildTypes {

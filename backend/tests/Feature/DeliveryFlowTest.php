@@ -196,6 +196,26 @@ class DeliveryFlowTest extends TestCase
         $this->get(route('admin.products.edit', Product::first()))->assertOk();
     }
 
+    public function test_payment_of_cancelled_delivery_cannot_be_approved(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->admin()->create();
+        Sanctum::actingAs(User::factory()->create());
+
+        $id = $this->postJson('/api/v1/deliveries', $this->deliveryPayload())->json('data.id');
+        $this->post("/api/v1/deliveries/{$id}/payment", [
+            'method' => 'flooz', 'transaction_ref' => 'C1', 'payer_phone' => '+22899000000',
+            'screenshot' => UploadedFile::fake()->image('c.jpg'),
+        ], ['Accept' => 'application/json'])->assertOk();
+        Delivery::findOrFail($id)->cancel('Test');
+
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($admin)
+            ->post(route('admin.payments.approve', Payment::firstOrFail()))
+            ->assertSessionHasErrors('payment');
+        $this->assertSame('submitted', Delivery::findOrFail($id)->payment_status->value);
+    }
+
     public function test_transaction_reference_cannot_be_reused(): void
     {
         Storage::fake('local');

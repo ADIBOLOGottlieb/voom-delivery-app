@@ -94,6 +94,9 @@ class DeliveryController extends Controller
     public function approvePayment(Request $request, Payment $payment): RedirectResponse
     {
         abort_unless($payment->status === PaymentStatus::Submitted, 422, 'Ce paiement a déjà été traité.');
+        if ($payment->delivery->status === DeliveryStatus::Cancelled) {
+            return back()->withErrors(['payment' => 'Livraison annulée : le paiement ne peut pas être confirmé (rembourser le client si nécessaire).']);
+        }
 
         DB::transaction(function () use ($request, $payment) {
             $payment->forceFill([
