@@ -14,6 +14,7 @@ Route::redirect('/', '/admin');
 Route::middleware('throttle:30,1')->group(function () {
     Route::get('/paiement/{token}', [CheckoutPageController::class, 'show'])->whereUuid('token')->name('checkout.show');
     Route::get('/paiement/{token}/retour', [CheckoutPageController::class, 'return'])->whereUuid('token')->name('checkout.return');
+    Route::post('/paiement/{token}/simulation', [CheckoutPageController::class, 'simulate'])->whereUuid('token')->name('checkout.simulate');
 });
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -32,6 +33,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/deliveries/{delivery}/assign', [DeliveryController::class, 'assign'])->name('deliveries.assign');
         Route::post('/deliveries/{delivery}/cancel', [DeliveryController::class, 'cancel'])->name('deliveries.cancel');
 
+        Route::post('/deliveries/{delivery}/confirm-payment', [DeliveryController::class, 'confirmPayment'])->name('deliveries.confirm-payment');
         Route::post('/payments/{payment}/approve', [DeliveryController::class, 'approvePayment'])->name('payments.approve');
         Route::post('/payments/{payment}/reject', [DeliveryController::class, 'rejectPayment'])->name('payments.reject');
         Route::get('/payments/{payment}/screenshot', [DeliveryController::class, 'screenshot'])->name('payments.screenshot');

@@ -143,7 +143,20 @@
                         </button>
                     </form>
                 @elseif ($delivery->payment_status !== \App\Enums\PaymentStatus::Verified && ! $delivery->status->isFinal())
-                    <p class="text-sm text-gray-500">Confirmez d'abord le paiement pour pouvoir assigner un livreur.</p>
+                    <p class="text-sm text-gray-500 mb-3">Le paiement doit être validé avant d'assigner un livreur.</p>
+                    <form method="POST" action="{{ route('admin.deliveries.confirm-payment', $delivery) }}" class="space-y-2 border-t pt-3"
+                          onsubmit="return confirm('Valider le paiement de {{ number_format($delivery->total_amount, 0, ',', ' ') }} FCFA ?')">
+                        @csrf
+                        <p class="text-sm font-semibold">Valider le paiement manuellement</p>
+                        <p class="text-xs text-gray-500">Espèces, virement vérifié sur le compte marchand ou test.</p>
+                        <select name="method" class="w-full border rounded px-3 py-2">
+                            @foreach (\App\Enums\PaymentMethod::cases() as $method)
+                                <option value="{{ $method->value }}">{{ $method->label() }}</option>
+                            @endforeach
+                        </select>
+                        <input name="reference" placeholder="Réf. transaction (facultatif)" class="w-full border rounded px-3 py-2">
+                        <button class="w-full bg-green-600 text-white font-semibold rounded py-2">Valider le paiement</button>
+                    </form>
                 @endif
             </section>
 

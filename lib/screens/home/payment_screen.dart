@@ -296,6 +296,19 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (info.gateway == 'simulation')
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'MODE TEST : paiement simulé, aucun argent ne sera débité.',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
         _amountCard(),
         const SizedBox(height: 20),
         Text('1. Choisissez votre moyen de paiement', style: titles),

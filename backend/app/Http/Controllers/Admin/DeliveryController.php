@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\DeliveryStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Delivery;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Payments\PaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -80,6 +82,19 @@ class DeliveryController extends Controller
         $delivery->assignTo(User::findOrFail($data['courier_id']));
 
         return back()->with('success', 'Livreur assigné.');
+    }
+
+    /** Validation du paiement par l'admin (espèces, virement vérifié manuellement, test). */
+    public function confirmPayment(Request $request, Delivery $delivery, PaymentService $payments): RedirectResponse
+    {
+        $data = $request->validate([
+            'method' => ['required', Rule::enum(PaymentMethod::class)],
+            'reference' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $payments->confirmByAdmin($delivery, $request->user(), PaymentMethod::from($data['method']), $data['reference'] ?? null);
+
+        return back()->with('success', 'Paiement validé. Vous pouvez assigner un livreur.');
     }
 
     public function cancel(Request $request, Delivery $delivery): RedirectResponse

@@ -16,15 +16,26 @@ class CheckoutPageController extends Controller
 
     public function show(string $token, KkiapayGateway $kkiapay): View
     {
-        $payment = Payment::where('checkout_token', $token)->where('gateway', 'kkiapay')->firstOrFail();
+        $payment = $this->find($token);
 
         return view('pay.checkout', [
             'payment' => $payment->load('delivery'),
+            'simulation' => $payment->gateway === 'simulation',
             'publicKey' => $kkiapay->publicKey(),
             'sandbox' => $kkiapay->isSandbox(),
             'phone' => preg_replace('/\D/', '', (string) $payment->payer_phone),
             'feeLabel' => config('payments.kkiapay.fee_label'),
         ]);
+    }
+
+    /** Mode simulation : le testeur choisit le résultat (aucun argent débité). */
+    public function simulate(Request $request, string $token): View
+    {
+        $payment = Payment::where('checkout_token', $token)->where('gateway', 'simulation')->firstOrFail();
+
+        $this->payments->simulate($payment, $request->input('result') === 'success');
+
+        return $this->resultView($payment->refresh());
     }
 
     /** Retour du widget après paiement : rattache la transaction puis la vérifie côté serveur. */
@@ -36,8 +47,16 @@ class CheckoutPageController extends Controller
         if ($transactionId !== '') {
             $this->payments->attachReference($payment, $transactionId);
         }
-        $payment = $this->payments->refresh($payment->refresh());
+        return $this->resultView($this->payments->refresh($payment->refresh()));
+    }
 
+    private function find(string $token): Payment
+    {
+        return Payment::where('checkout_token', $token)->whereIn('gateway', ['kkiapay', 'simulation'])->firstOrFail();
+    }
+
+    private function resultView(Payment $payment): View
+    {
         return view('pay.checkout', [
             'payment' => $payment->load('delivery'),
             'result' => $payment->status === PaymentStatus::Verified ? 'success'

@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Enums\Role;
-use App\Models\Product;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -14,6 +13,9 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // Catalogue marketplace : créé une seule fois, y compris en production.
+        $this->call(ProductCatalogSeeder::class);
+
         if (app()->isProduction() && ! env('ADMIN_PASSWORD')) {
             $this->command?->warn('ADMIN_PASSWORD non défini : compte admin non créé.');
 
@@ -51,26 +53,5 @@ class DatabaseSeeder extends Seeder
             'role' => Role::Client,
             'is_active' => true,
         ]);
-
-        $products = [
-            ['shopping', 'Pagne wax 6 yards', 15000, 'pièce', 'Boutique Grand Marché', 'Grand Marché de Lomé', 6.1300, 1.2250],
-            ['shopping', 'Sac à main en cuir', 12000, 'pièce', 'Boutique Grand Marché', 'Grand Marché de Lomé', 6.1300, 1.2250],
-            ['agro', 'Tomates fraîches', 800, 'kg', "Marché d'Adawlato", "Marché d'Adawlato, Lomé", 6.1287, 1.2238],
-            ['agro', 'Gari de manioc', 600, 'kg', 'Coopérative Agoè', 'Agoè-Nyivé, Lomé', 6.2000, 1.2100],
-            ['agro', 'Ananas', 500, 'pièce', 'Coopérative Agoè', 'Agoè-Nyivé, Lomé', 6.2000, 1.2100],
-        ];
-
-        foreach ($products as [$category, $name, $price, $unit, $vendor, $address, $lat, $lng]) {
-            Product::updateOrCreate(['name' => $name], [
-                'category' => $category,
-                'price' => $price,
-                'unit' => $unit,
-                'vendor_name' => $vendor,
-                'pickup_address' => $address,
-                'pickup_lat' => $lat,
-                'pickup_lng' => $lng,
-                'is_active' => true,
-            ]);
-        }
     }
 }

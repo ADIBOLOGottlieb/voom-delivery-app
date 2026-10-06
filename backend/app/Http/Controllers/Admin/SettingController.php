@@ -17,7 +17,9 @@ class SettingController extends Controller
 
         // Les clés d'agrégateur sont des secrets : affichées en lecture seule, modifiables uniquement dans .env.
         $gateway = [
+            'mode' => $payments->mode(),
             'requested' => config('payments.gateway'),
+            'configured' => $payments->configuredGateway()?->name(),
             'active' => $payments->gateway()?->name(),
             'sandbox' => (bool) config('payments.kkiapay.sandbox'),
             'webhook_kkiapay' => route('webhooks.kkiapay'),
@@ -38,6 +40,7 @@ class SettingController extends Controller
             'per_km_fee' => ['required', 'integer', 'min:0'],
             'express_fee' => ['required', 'integer', 'min:0'],
             'min_fee' => ['required', 'integer', 'min:0'],
+            'payment_mode' => ['required', 'in:auto,manual,simulation'],
         ]);
 
         Setting::put(array_map(fn ($v) => $v === null ? null : (string) $v, $data));

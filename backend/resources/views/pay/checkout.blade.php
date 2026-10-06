@@ -28,6 +28,19 @@
         @else
             @if ($payment->status->value !== 'pending')
                 <p class="text-gray-700 mt-4">Ce lien de paiement n'est plus valide. Retournez dans l'application.</p>
+            @elseif ($simulation)
+                <p class="mt-4 rounded bg-orange-100 text-orange-800 text-sm p-3 font-semibold">
+                    MODE SIMULATION — aucun argent n'est débité.
+                </p>
+                <form method="POST" action="{{ route('checkout.simulate', $payment->checkout_token) }}" class="mt-6 space-y-3">
+                    @csrf
+                    <button name="result" value="success" class="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-lg py-3">
+                        Simuler un paiement réussi
+                    </button>
+                    <button name="result" value="fail" class="w-full border border-red-500 text-red-700 rounded-lg py-3">
+                        Simuler un échec
+                    </button>
+                </form>
             @else
                 <p class="text-gray-600 text-sm">Flooz ou Mixx by Yas · {{ $feeLabel }}</p>
                 <button id="pay" class="mt-6 w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-lg py-3">
@@ -38,7 +51,7 @@
         @endisset
     </div>
 
-    @if (! isset($result) && $payment->status->value === 'pending')
+    @if (! isset($result) && empty($simulation) && $payment->status->value === 'pending')
         <script src="https://cdn.kkiapay.me/k.js"></script>
         <script>
             const returnUrl = @json(route('checkout.return', $payment->checkout_token));
