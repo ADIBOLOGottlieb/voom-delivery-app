@@ -5,8 +5,8 @@
 @section('content')
     <div class="max-w-sm mx-auto mt-16 bg-white rounded-xl shadow p-8">
         <div class="text-center mb-6">
-            <div class="mx-auto mb-3 w-16 h-16 rounded-xl bg-voom flex items-center justify-center text-3xl">🛵</div>
-            <h1 class="text-2xl font-bold">VOOM Delivery</h1>
+            <img src="{{ asset('images/voom-logo.svg') }}" alt="VOOM Delivery" class="mx-auto mb-3 w-64">
+            <h1 class="sr-only">VOOM Delivery</h1>
             <p class="text-gray-500 text-sm">Panneau d'administration</p>
         </div>
         <form method="POST" action="{{ route('admin.login') }}" class="space-y-4">

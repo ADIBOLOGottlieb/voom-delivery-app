@@ -9,6 +9,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:voom_delivery_app/main.dart';
 import 'package:voom_delivery_app/models/delivery.dart';
 import 'package:voom_delivery_app/services/api_client.dart';
+import 'package:voom_delivery_app/widgets/voom_logo.dart';
 
 Map<String, dynamic> _deliveryJson() => {
       'id': 1,
@@ -43,7 +44,7 @@ void main() {
     final api = ApiClient(httpClient: MockClient((_) async => http.Response('{}', 404)));
 
     await tester.pumpWidget(VoomDeliveryApp(api: api));
-    expect(find.text('VOOM'), findsOneWidget);
+    expect(find.byType(VoomLogo), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();

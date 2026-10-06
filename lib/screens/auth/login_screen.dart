@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../utils/colors.dart';
+import '../../widgets/voom_logo.dart';
 import '../splash_screen.dart';
 import 'register_screen.dart';
 
@@ -57,18 +58,8 @@ class _LoginScreenState extends State<LoginScreen> {
               Center(
                 child: Column(
                   children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(Icons.delivery_dining, size: 40, color: AppColors.secondary),
-                    ),
-                    const SizedBox(height: 16),
-                    Text('VOOM Delivery', style: Theme.of(context).textTheme.headlineLarge),
-                    const SizedBox(height: 8),
+                    const VoomLogo(width: 240),
+                    const SizedBox(height: 20),
                     Text('Connectez-vous à votre compte', style: Theme.of(context).textTheme.bodyMedium),
                   ],
                 ),

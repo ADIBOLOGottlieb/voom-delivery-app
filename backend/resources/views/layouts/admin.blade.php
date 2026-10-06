@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Administration') · VOOM Delivery</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/voom-icon.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { theme: { extend: { colors: { voom: { DEFAULT: '#FFD700', dark: '#FFB300' } } } } };
@@ -23,7 +24,10 @@
     @endphp
     <header class="bg-black text-white">
         <div class="max-w-7xl mx-auto px-4 flex flex-wrap items-center gap-x-6 gap-y-2 py-3">
-            <a href="{{ route('admin.dashboard') }}" class="font-extrabold tracking-wider text-voom text-xl">VOOM <span class="font-light text-white">Admin</span></a>
+            <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
+                <img src="{{ asset('images/voom-logo.svg') }}" alt="VOOM Delivery" class="h-10">
+                <span class="font-light text-white text-lg">Admin</span>
+            </a>
             <nav class="flex flex-wrap gap-1 text-sm flex-1">
                 @foreach ($nav as [$route, $label, $pattern])
                     <a href="{{ route($route) }}"

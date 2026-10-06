@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
 import '../utils/colors.dart';
+import '../widgets/voom_logo.dart';
 import 'auth/login_screen.dart';
 import 'courier/courier_home_screen.dart';
 import 'home/main_screen.dart';
@@ -67,11 +68,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 120,
-                  height: 120,
+                DecoratedBox(
                   decoration: BoxDecoration(
-                    color: AppColors.secondary,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -81,22 +79,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.delivery_dining, size: 60, color: AppColors.primary),
+                  child: const VoomLogo(width: 280),
                 ),
                 const SizedBox(height: 24),
-                Text(
-                  'VOOM',
-                  style: textTheme.headlineLarge?.copyWith(color: AppColors.secondary, letterSpacing: 2),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Delivery',
-                  style: textTheme.headlineMedium?.copyWith(
-                    color: AppColors.secondary,
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Text(
                   'Livraison • Shopping • Agroalimentaire',
                   style: textTheme.bodyMedium?.copyWith(color: AppColors.secondary),

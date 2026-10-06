@@ -31,6 +31,18 @@ Client                         Admin (web /admin)                 Livreur
 - **Tarif** : forfait + distance estimée × prix/km (+ supplément Express), minimum configurable, arrondi à 50 F. Réglable dans *Admin › Réglages*.
 - **Paiement** : numéros marchands Flooz / Mixx by Yas configurés dans *Admin › Réglages*. Une référence de transaction ne peut servir qu'une fois. Un livreur ne peut être assigné qu'après confirmation du paiement.
 
+## Identité visuelle
+
+Couleurs VOOM : jaune `#FFD700`, noir `#000000`, blanc. Le logo (moto stylisée formant « VOOM ») est dans :
+
+| Fichier | Usage |
+|---|---|
+| `assets/images/voom_logo.svg` | Logo affiché dans l'app (splash, connexion, espace livreur) |
+| `assets/images/voom_icon.png` (1024×1024) | Source des icônes Android / iOS |
+| `backend/public/images/voom-logo.svg`, `voom-icon.svg` | Panneau admin et favicon |
+
+Pour utiliser le fichier officiel de l'agence : remplacer ces fichiers (mêmes noms), puis régénérer les icônes avec `dart run flutter_launcher_icons`.
+
 ## Démarrage en local
 
 ### 1. Backend

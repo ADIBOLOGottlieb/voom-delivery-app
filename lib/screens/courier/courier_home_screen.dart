@@ -7,6 +7,7 @@ import '../../services/delivery_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/status_chip.dart';
+import '../../widgets/voom_logo.dart';
 import '../home/profile_screen.dart';
 import 'courier_delivery_screen.dart';
 
@@ -23,6 +24,11 @@ class CourierHomeScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: AppColors.secondary,
           foregroundColor: AppColors.primary,
+          leadingWidth: 104,
+          leading: const Padding(
+            padding: EdgeInsets.only(left: 12),
+            child: Center(child: VoomLogo(width: 92)),
+          ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

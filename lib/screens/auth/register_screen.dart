@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../utils/colors.dart';
+import '../../widgets/voom_logo.dart';
 import '../home/main_screen.dart';
 
 /// Inscription des clients. Les comptes livreurs sont créés par l'admin.
@@ -69,6 +70,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const Center(child: VoomLogo(width: 180)),
+                const SizedBox(height: 20),
                 Text('Créer un compte client', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 8),
                 Text('Demandez vos livraisons en quelques secondes.',
