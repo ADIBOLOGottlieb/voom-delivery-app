@@ -1,0 +1,16 @@
+/// Configuration de l'API backend (Laravel).
+///
+/// Surchargeable au lancement :
+///   flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000/api/v1
+///
+/// Par défaut : l'API Render en release, sinon 10.0.2.2 (la machine hôte vue depuis l'émulateur Android).
+class ApiConfig {
+  static const String productionUrl = 'https://voom-delivery-api.onrender.com/api/v1';
+
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: bool.fromEnvironment('dart.vm.product') ? productionUrl : 'http://10.0.2.2:8000/api/v1',
+  );
+
+  static const Duration timeout = Duration(seconds: 20);
+}

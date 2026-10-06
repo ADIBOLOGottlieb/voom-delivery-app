@@ -1,80 +1,52 @@
+class UserRole {
+  static const client = 'client';
+  static const courier = 'livreur';
+  static const admin = 'admin';
+}
+
 class User {
   final int id;
   final String name;
-  final String email;
-  final String? phoneNumber;
-  final int roleId;
-  final Role? role;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final String? email;
+  final String phoneNumber;
+  final String role;
+  final String? vehicle;
 
-  User({
+  const User({
     required this.id,
     required this.name,
-    required this.email,
-    this.phoneNumber,
-    required this.roleId,
-    this.role,
-    required this.createdAt,
-    required this.updatedAt,
+    this.email,
+    required this.phoneNumber,
+    required this.role,
+    this.vehicle,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: json['id'],
-      name: json['name'],
-      email: json['email'],
-      phoneNumber: json['phone_number'],
-      roleId: json['role_id'],
-      role: json['role'] != null ? Role.fromJson(json['role']) : null,
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
-    );
-  }
+  bool get isCourier => role == UserRole.courier;
+  bool get isClient => role == UserRole.client;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'email': email,
-      'phone_number': phoneNumber,
-      'role_id': roleId,
-      'role': role?.toJson(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-    };
-  }
+  String get roleLabel => switch (role) {
+        UserRole.courier => 'Livreur',
+        UserRole.admin => 'Administrateur',
+        _ => 'Client',
+      };
+
+  String get initial => name.trim().isEmpty ? 'U' : name.trim()[0].toUpperCase();
+
+  factory User.fromJson(Map<String, dynamic> json) => User(
+        id: json['id'] as int,
+        name: json['name'] as String,
+        email: json['email'] as String?,
+        phoneNumber: json['phone_number'] as String,
+        role: json['role'] as String,
+        vehicle: json['vehicle'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'email': email,
+        'phone_number': phoneNumber,
+        'role': role,
+        'vehicle': vehicle,
+      };
 }
-
-class Role {
-  final int id;
-  final String name;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
-  Role({
-    required this.id,
-    required this.name,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory Role.fromJson(Map<String, dynamic> json) {
-    return Role(
-      id: json['id'],
-      name: json['name'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-    };
-  }
-}
-

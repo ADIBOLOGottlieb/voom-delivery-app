@@ -1,159 +1,109 @@
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../models/user.dart';
+import 'api_client.dart';
 
 class AuthService extends ChangeNotifier {
-  static const String baseUrl = 'http://localhost:8000/api/v1';
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
-  
+  AuthService(this._api, {FlutterSecureStorage? storage})
+      : _storage = storage ?? const FlutterSecureStorage() {
+    _api.onUnauthorized = _clearSession;
+  }
+
+  static const _tokenKey = 'auth_token';
+  static const _userKey = 'user_data';
+
+  final ApiClient _api;
+  final FlutterSecureStorage _storage;
+
   User? _user;
-  String? _token;
   bool _isLoading = false;
 
   User? get user => _user;
-  String? get token => _token;
   bool get isLoading => _isLoading;
-  bool get isAuthenticated => _token != null && _user != null;
+  bool get isAuthenticated => _api.token != null && _user != null;
 
-  AuthService() {
-    _loadStoredAuth();
-  }
-
-  Future<void> _loadStoredAuth() async {
+  /// Restaure la session enregistrée. À attendre avant de choisir l'écran de départ.
+  Future<void> init() async {
     try {
-      _token = await _storage.read(key: 'auth_token');
-      final userJson = await _storage.read(key: 'user_data');
-      
-      if (_token != null && userJson != null) {
-        _user = User.fromJson(json.decode(userJson));
+      final token = await _storage.read(key: _tokenKey);
+      final userJson = await _storage.read(key: _userKey);
+      if (token != null && userJson != null) {
+        _api.token = token;
+        _user = User.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
         notifyListeners();
+        // Rafraîchit le profil en arrière-plan (rôle ou statut modifié par l'admin).
+        _refreshProfile();
       }
     } catch (e) {
-      debugPrint('Error loading stored auth: $e');
+      debugPrint('Session illisible, réinitialisation : $e');
+      await _clearSession();
     }
   }
 
-  Future<bool> register({
+  Future<void> _refreshProfile() async {
+    try {
+      final data = await _api.get('/me') as Map<String, dynamic>;
+      _user = User.fromJson(data['data'] as Map<String, dynamic>);
+      await _storage.write(key: _userKey, value: jsonEncode(_user!.toJson()));
+      notifyListeners();
+    } on ApiException catch (e) {
+      debugPrint('Profil non rafraîchi : $e');
+    }
+  }
+
+  /// Lève [ApiException] avec un message affichable en cas d'échec.
+  Future<void> login({required String login, required String password}) {
+    return _authenticate('/login', {'login': login, 'password': password});
+  }
+
+  Future<void> register({
     required String name,
-    required String email,
+    String? email,
     required String phoneNumber,
     required String password,
     required String confirmPassword,
-    required String roleName,
-  }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/register'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode({
-          'name': name,
-          'email': email,
-          'phone_number': phoneNumber,
-          'password': password,
-          'password_confirmation': confirmPassword,
-          'role_name': roleName,
-        }),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 201) {
-        _token = data['token'];
-        _user = User.fromJson(data['user']);
-        
-        await _storage.write(key: 'auth_token', value: _token);
-        await _storage.write(key: 'user_data', value: json.encode(_user!.toJson()));
-        
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      } else {
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      debugPrint('Registration error: $e');
-      return false;
-    }
+  }) {
+    return _authenticate('/register', {
+      'name': name,
+      if (email != null && email.isNotEmpty) 'email': email,
+      'phone_number': phoneNumber,
+      'password': password,
+      'password_confirmation': confirmPassword,
+    });
   }
 
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> _authenticate(String path, Map<String, dynamic> body) async {
     _isLoading = true;
     notifyListeners();
-
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/login'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        _token = data['token'];
-        _user = User.fromJson(data['user']);
-        
-        await _storage.write(key: 'auth_token', value: _token);
-        await _storage.write(key: 'user_data', value: json.encode(_user!.toJson()));
-        
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      } else {
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
+      final data = await _api.post(path, body) as Map<String, dynamic>;
+      _api.token = data['token'] as String;
+      _user = User.fromJson(data['user'] as Map<String, dynamic>);
+      await _storage.write(key: _tokenKey, value: _api.token);
+      await _storage.write(key: _userKey, value: jsonEncode(_user!.toJson()));
+    } finally {
       _isLoading = false;
       notifyListeners();
-      debugPrint('Login error: $e');
-      return false;
     }
   }
 
   Future<void> logout() async {
     try {
-      if (_token != null) {
-        await http.post(
-          Uri.parse('$baseUrl/logout'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': 'Bearer $_token',
-          },
-        );
-      }
-    } catch (e) {
-      debugPrint('Logout error: $e');
-    } finally {
-      _token = null;
-      _user = null;
-      await _storage.delete(key: 'auth_token');
-      await _storage.delete(key: 'user_data');
-      notifyListeners();
+      if (_api.token != null) await _api.post('/logout');
+    } on ApiException catch (e) {
+      debugPrint('Déconnexion serveur impossible : $e');
     }
+    await _clearSession();
+  }
+
+  Future<void> _clearSession() async {
+    _api.token = null;
+    _user = null;
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _userKey);
+    notifyListeners();
   }
 }
-

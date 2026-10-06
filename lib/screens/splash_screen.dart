@@ -1,142 +1,111 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../utils/colors.dart';
+
 import '../services/auth_service.dart';
+import '../utils/colors.dart';
 import 'auth/login_screen.dart';
+import 'courier/courier_home_screen.dart';
 import 'home/main_screen.dart';
 
+/// Écran d'accueil animé ; restaure la session puis redirige selon le rôle.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  /// Écran de départ correspondant à l'utilisateur connecté.
+  static Widget homeFor(AuthService auth) {
+    if (!auth.isAuthenticated) return const LoginScreen();
+    return auth.user!.isCourier ? const CourierHomeScreen() : const MainScreen();
+  }
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
+    _controller = AnimationController(duration: const Duration(milliseconds: 1500), vsync: this);
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _scale = Tween<double>(begin: 0.5, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
     );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
-
-    _scaleAnimation = Tween<double>(
-      begin: 0.5,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
-
-    _animationController.forward();
-    _checkAuthStatus();
+    _controller.forward();
+    _start();
   }
 
-  Future<void> _checkAuthStatus() async {
-    await Future.delayed(const Duration(seconds: 3));
-    
-    if (mounted) {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      
-      if (authService.isAuthenticated) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainScreen()),
-        );
-      } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      }
-    }
+  Future<void> _start() async {
+    final auth = context.read<AuthService>();
+    // Attend à la fois la restauration de session et une durée minimale d'animation.
+    await Future.wait([auth.init(), Future.delayed(const Duration(milliseconds: 1800))]);
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => SplashScreen.homeFor(auth)),
+    );
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: Center(
-        child: AnimatedBuilder(
-          animation: _animationController,
-          builder: (context, child) {
-            return FadeTransition(
-              opacity: _fadeAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.secondary.withOpacity(0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
+        child: FadeTransition(
+          opacity: _fade,
+          child: ScaleTransition(
+            scale: _scale,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.secondary.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
-                      child: const Icon(
-                        Icons.delivery_dining,
-                        size: 60,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'VOOM',
-                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        color: AppColors.secondary,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Delivery',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: AppColors.secondary,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Livraison • Shopping • Agroalimentaire',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: const Icon(Icons.delivery_dining, size: 60, color: AppColors.primary),
                 ),
-              ),
-            );
-          },
+                const SizedBox(height: 24),
+                Text(
+                  'VOOM',
+                  style: textTheme.headlineLarge?.copyWith(color: AppColors.secondary, letterSpacing: 2),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Delivery',
+                  style: textTheme.headlineMedium?.copyWith(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Livraison • Shopping • Agroalimentaire',
+                  style: textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
-

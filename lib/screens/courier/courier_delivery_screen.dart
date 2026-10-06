@@ -1,0 +1,263 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/delivery.dart';
+import '../../services/api_client.dart';
+import '../../services/delivery_service.dart';
+import '../../utils/colors.dart';
+import '../../utils/formatters.dart';
+import '../../utils/launchers.dart';
+import '../../widgets/delivery_map.dart';
+import '../../widgets/status_chip.dart';
+
+/// Détail d'une livraison pour le livreur : carte A/B, itinéraires Google Maps, contacts, étapes.
+class CourierDeliveryScreen extends StatefulWidget {
+  final int deliveryId;
+
+  const CourierDeliveryScreen({super.key, required this.deliveryId});
+
+  @override
+  State<CourierDeliveryScreen> createState() => _CourierDeliveryScreenState();
+}
+
+class _CourierDeliveryScreenState extends State<CourierDeliveryScreen> {
+  Delivery? _delivery;
+  String? _error;
+  bool _updating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final d = await context.read<DeliveryService>().courierDelivery(widget.deliveryId);
+      if (mounted) {
+        setState(() {
+          _delivery = d;
+          _error = null;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    }
+  }
+
+  Future<void> _advance(String status, String confirmText) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmation'),
+        content: Text(confirmText),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirmer')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _updating = true);
+    try {
+      final d = await context.read<DeliveryService>().updateCourierStatus(_delivery!.id, status);
+      if (!mounted) return;
+      setState(() => _delivery = d);
+      messenger.showSnackBar(SnackBar(content: Text(d.statusLabel), backgroundColor: AppColors.success));
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message), backgroundColor: AppColors.error));
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = _delivery;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(d?.reference ?? 'Livraison'),
+        backgroundColor: AppColors.secondary,
+        foregroundColor: AppColors.primary,
+      ),
+      body: d == null
+          ? Center(
+              child: _error == null
+                  ? const CircularProgressIndicator()
+                  : Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(_error!, style: const TextStyle(color: AppColors.error)),
+                      TextButton(onPressed: _load, child: const Text('Réessayer')),
+                    ]),
+            )
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                children: [
+                  Wrap(spacing: 8, children: [
+                    StatusChip.delivery(d),
+                    StatusChip(label: d.type.label, color: AppColors.secondary),
+                    StatusChip(label: formatKm(d.distanceKm), color: AppColors.info),
+                  ]),
+                  const SizedBox(height: 12),
+                  DeliveryMap(pickup: d.pickup, dropoff: d.dropoff, height: 280),
+                  const SizedBox(height: 16),
+                  _StopCard(
+                    letter: 'A',
+                    title: 'Récupérer le colis',
+                    color: AppColors.success,
+                    point: d.pickup,
+                    done: d.status == DeliveryStatus.pickedUp || d.status == DeliveryStatus.delivered,
+                    navigateLabel: 'Itinéraire vers la récupération',
+                  ),
+                  _StopCard(
+                    letter: 'B',
+                    title: 'Livrer au destinataire',
+                    color: AppColors.error,
+                    point: d.dropoff,
+                    done: d.status == DeliveryStatus.delivered,
+                    navigateLabel: 'Itinéraire vers la destination',
+                  ),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Colis', style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 6),
+                          Text(d.packageDescription ?? 'Pas de description'),
+                          if (d.notes != null) ...[
+                            const SizedBox(height: 10),
+                            Text('Instructions', style: Theme.of(context).textTheme.titleMedium),
+                            const SizedBox(height: 4),
+                            Text(d.notes!),
+                          ],
+                          if (d.scheduledAt != null) ...[
+                            const SizedBox(height: 10),
+                            Text('À livrer le ${formatDateTime(d.scheduledAt!)}',
+                                style: const TextStyle(fontWeight: FontWeight.w600)),
+                          ],
+                          const Divider(height: 24),
+                          Row(children: [
+                            const Icon(Icons.verified, color: AppColors.success, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Payé en ligne (${formatFcfa(d.totalAmount)}). Rien à encaisser auprès du client.',
+                              ),
+                            ),
+                          ]),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+      bottomNavigationBar: d == null ? null : _actionBar(d),
+    );
+  }
+
+  Widget? _actionBar(Delivery d) {
+    final (String? status, String label, String confirm) = switch (d.status) {
+      DeliveryStatus.assigned => (
+          DeliveryStatus.pickedUp,
+          "J'ai récupéré le colis",
+          'Confirmez-vous avoir récupéré le colis au point A ?'
+        ),
+      DeliveryStatus.pickedUp => (
+          DeliveryStatus.delivered,
+          'Confirmer la livraison',
+          'Confirmez-vous avoir remis le colis au destinataire ?'
+        ),
+      _ => (null, '', ''),
+    };
+    if (status == null) return null;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ElevatedButton.icon(
+          onPressed: _updating ? null : () => _advance(status, confirm),
+          icon: _updating
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : Icon(status == DeliveryStatus.pickedUp ? Icons.inventory_2 : Icons.check_circle),
+          label: Text(label),
+          style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(54)),
+        ),
+      ),
+    );
+  }
+}
+
+class _StopCard extends StatelessWidget {
+  final String letter;
+  final String title;
+  final Color color;
+  final DeliveryPoint point;
+  final bool done;
+  final String navigateLabel;
+
+  const _StopCard({
+    required this.letter,
+    required this.title,
+    required this.color,
+    required this.point,
+    required this.done,
+    required this.navigateLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: done ? AppColors.textHint : color,
+                child: done
+                    ? const Icon(Icons.check, size: 16, color: Colors.white)
+                    : Text(letter, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 10),
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+            ]),
+            const SizedBox(height: 10),
+            Text(point.address, style: const TextStyle(fontSize: 15)),
+            if (point.contactName != null || point.contactPhone != null) ...[
+              const SizedBox(height: 6),
+              Text([point.contactName, point.contactPhone].whereType<String>().join(' · '),
+                  style: Theme.of(context).textTheme.bodyMedium),
+            ],
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => openNavigation(context, point.lat, point.lng),
+                  icon: const Icon(Icons.navigation),
+                  label: Text(navigateLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
+              ),
+              if (point.contactPhone != null) ...[
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  tooltip: 'Appeler',
+                  style: IconButton.styleFrom(backgroundColor: AppColors.success),
+                  onPressed: () => callPhone(context, point.contactPhone!),
+                  icon: const Icon(Icons.call, color: Colors.white),
+                ),
+              ],
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -72,3 +72,7 @@
 # Secrets
 secrets.json
 
+
+# Outils locaux
+.dart_tool/
+/android/build/

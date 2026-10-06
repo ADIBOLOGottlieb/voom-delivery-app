@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../utils/colors.dart';
+
+import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
-import '../home/main_screen.dart';
+import '../../utils/colors.dart';
+import '../splash_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,53 +16,44 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _loginController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _loginController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      
-      final success = await authService.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+    if (!_formKey.currentState!.validate()) return;
+    final auth = context.read<AuthService>();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
-      if (success && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainScreen()),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Échec de la connexion. Vérifiez vos identifiants.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+    try {
+      await auth.login(login: _loginController.text.trim(), password: _passwordController.text);
+      navigator.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => SplashScreen.homeFor(auth)),
+        (_) => false,
+      );
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message), backgroundColor: AppColors.error));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 60),
-              // Logo et titre
+              const SizedBox(height: 48),
               Center(
                 child: Column(
                   children: [
@@ -71,121 +64,87 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(
-                        Icons.delivery_dining,
-                        size: 40,
-                        color: AppColors.secondary,
-                      ),
+                      child: const Icon(Icons.delivery_dining, size: 40, color: AppColors.secondary),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      'VOOM Delivery',
-                      style: Theme.of(context).textTheme.headlineLarge,
-                    ),
+                    Text('VOOM Delivery', style: Theme.of(context).textTheme.headlineLarge),
                     const SizedBox(height: 8),
-                    Text(
-                      'Connectez-vous à votre compte',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                    Text('Connectez-vous à votre compte', style: Theme.of(context).textTheme.bodyMedium),
                   ],
                 ),
               ),
-              const SizedBox(height: 48),
-              // Formulaire de connexion
+              const SizedBox(height: 40),
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
                     TextFormField(
-                      controller: _emailController,
+                      controller: _loginController,
                       keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.username],
                       decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email_outlined),
+                        labelText: 'Email ou téléphone',
+                        prefixIcon: Icon(Icons.person_outline),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Veuillez saisir votre email';
-                        }
-                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                          return 'Veuillez saisir un email valide';
-                        }
-                        return null;
-                      },
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty) ? 'Saisissez votre email ou téléphone' : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      autofillHints: const [AutofillHints.password],
+                      onFieldSubmitted: (_) => _login(),
                       decoration: InputDecoration(
                         labelText: 'Mot de passe',
                         prefixIcon: const Icon(Icons.lock_outlined),
                         suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
+                          tooltip: _obscurePassword ? 'Afficher' : 'Masquer',
+                          icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Veuillez saisir votre mot de passe';
-                        }
-                        return null;
-                      },
+                      validator: (value) =>
+                          (value == null || value.isEmpty) ? 'Saisissez votre mot de passe' : null,
                     ),
                     const SizedBox(height: 24),
                     Consumer<AuthService>(
-                      builder: (context, authService, child) {
-                        return SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: authService.isLoading ? null : _login,
-                            child: authService.isLoading
-                                ? const CircularProgressIndicator(
-                                    color: AppColors.onPrimary,
-                                  )
-                                : const Text('Se connecter'),
-                          ),
-                        );
-                      },
+                      builder: (context, auth, _) => SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: auth.isLoading ? null : _login,
+                          child: auth.isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.onPrimary),
+                                )
+                              : const Text('Se connecter'),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-              // Lien vers l'inscription
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'Pas encore de compte ? ',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
+                  Text('Pas encore de compte ? ', style: Theme.of(context).textTheme.bodyMedium),
                   TextButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const RegisterScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'S\'inscrire',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
                     ),
+                    child: const Text("S'inscrire", style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Vous êtes livreur ? Votre compte est créé par l'agence VOOM.",
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           ),
@@ -194,4 +153,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

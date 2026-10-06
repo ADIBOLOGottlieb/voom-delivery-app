@@ -1,74 +1,101 @@
-# 📱 VOOM Delivery - Application Mobile Flutter
+# VOOM Delivery
 
-![Flutter](https://img.shields.io/badge/Flutter-3.24.5-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)
+Application de livraison à Lomé (Togo) : le client demande une livraison d'un **point A** (récupération du colis) à un **point B** (destination), paie par **Flooz** ou **Mixx by Yas** sur le compte marchand de l'agence et envoie la **capture d'écran** de la transaction. L'agence vérifie le paiement et assigne un **livreur**, qui suit la course sur **Google Maps**.
 
-## 🚀 Présentation
+Le dépôt contient :
 
-Ce dépôt contient l'application mobile Flutter pour le projet VOOM Delivery. Elle offre une interface utilisateur moderne et intuitive pour les services de livraison, shopping et agroalimentaire.
+| Dossier | Contenu |
+|---|---|
+| `lib/` | Application mobile Flutter (clients et livreurs) |
+| `backend/` | API REST + panneau d'administration web (Laravel 13, Sanctum) |
+| `render.yaml` | Déploiement de l'API sur Render (Blueprint) |
 
-### 🎨 Design
-L'application utilise une palette de couleurs jaune, blanc et noir pour une esthétique moderne et épurée.
+## Fonctionnement
 
-## 🏗️ Architecture
+```
+Client                         Admin (web /admin)                 Livreur
+──────                         ──────────────────                 ───────
+1. Demande A → B (carte)
+   prix calculé (distance)
+2. Paie Flooz / Mixx
+   + envoie la capture  ──▶ 3. Vérifie la transaction
+                               ✔ confirme  /  ✘ refuse (motif)
+                            4. Assigne un livreur actif  ──▶ 5. Voit la livraison assignée
+                                                             carte A/B, itinéraire, appel
+                                                          6. « Colis récupéré » puis « Livré »
+7. Suit le statut en temps réel
+```
 
-L'application Flutter est le frontend du système VOOM Delivery. Elle communique avec un backend développé en Laravel via des APIs RESTful.
+- **Rôles** : `client` (inscription libre dans l'app), `livreur` (compte créé par l'admin uniquement), `admin` (panneau web).
+- **Marketplace** (Shopping, Agroalimentaire) : produits gérés par l'admin. Une commande crée une livraison dont le point A est l'adresse du vendeur ; le total = articles + frais de livraison.
+- **Tarif** : forfait + distance estimée × prix/km (+ supplément Express), minimum configurable, arrondi à 50 F. Réglable dans *Admin › Réglages*.
+- **Paiement** : numéros marchands Flooz / Mixx by Yas configurés dans *Admin › Réglages*. Une référence de transaction ne peut servir qu'une fois. Un livreur ne peut être assigné qu'après confirmation du paiement.
 
-- **Lien vers le Backend Laravel** : [https://github.com/your-github-username/voom-delivery-backend](https://github.com/your-github-username/voom-delivery-backend)
+## Démarrage en local
 
-## 🚀 Installation Rapide
+### 1. Backend
 
-1.  **Cloner ce dépôt** :
-    ```bash
-    git clone <URL_DE_CE_DEPOT>
-    cd voom-delivery-app
-    ```
+Prérequis : PHP 8.3+, Composer.
 
-2.  **Installer les dépendances Flutter** :
-    ```bash
-    flutter pub get
-    ```
+```bash
+cd backend
+composer install
+cp .env.example .env          # puis ajuster ADMIN_EMAIL / ADMIN_PASSWORD
+php artisan key:generate
+php artisan migrate --seed    # SQLite par défaut ; crée l'admin + données de démo
+php artisan storage:link
+php artisan serve --host=0.0.0.0 --port=8000
+```
 
-3.  **Configurer l'URL de l'API Backend** :
-    Ouvrez `lib/services/auth_service.dart` et mettez à jour la variable `baseUrl` avec l'URL de votre API Laravel déployée :
-    ```dart
-    static const String baseUrl = 'http://your-backend-ip-or-domain:8000/api/v1';
-    ```
+- Panneau admin : http://localhost:8000/admin (identifiants `ADMIN_EMAIL` / `ADMIN_PASSWORD` du `.env`).
+- Comptes de démo (hors production) : client `client@voom.tg`, livreur `livreur@voom.tg`, mot de passe `password123`.
+- Tests : `php artisan test`.
 
-4.  **Lancer l'application** :
-    ```bash
-    flutter run
-    ```
+### 2. Application Flutter
 
-## 📋 Fonctionnalités Principales
+Prérequis : Flutter 3.35+ ; sous Windows, activer le **Mode développeur** (requis pour les plugins).
 
--   **Écran de démarrage (Splash Screen)**
--   **Authentification** : Inscription et Connexion
--   **Navigation principale** : Accueil, Shopping, Agroalimentaire, Plis & Colis, Profil
--   **Module Shopping** : Catalogue de produits, recherche, panier (à développer)
--   **Module Agroalimentaire** : Produits frais, producteurs locaux (à développer)
--   **Module Plis & Colis** : Demandes de livraison, suivi (à développer)
--   **Profil Utilisateur** : Gestion des informations, historique
+1. Créer une clé **Google Maps** (Maps SDK for Android / iOS) dans Google Cloud Console.
+2. Android : ajouter dans `android/local.properties` (non versionné) :
+   ```
+   MAPS_API_KEY=VOTRE_CLE
+   ```
+   iOS : définir la variable de build `MAPS_API_KEY` dans Xcode (utilisée par `Info.plist › GMSApiKey`).
+3. Lancer :
+   ```bash
+   flutter pub get
+   # Émulateur Android (backend sur la machine hôte) :
+   flutter run
+   # Téléphone réel sur le même Wi-Fi :
+   flutter run --dart-define=API_BASE_URL=http://IP_DU_PC:8000/api/v1
+   ```
+   En build release, l'app utilise par défaut `https://voom-delivery-api.onrender.com/api/v1`.
 
-## 📚 Documentation
+Tests : `flutter test` · analyse : `flutter analyze`.
 
-Pour une documentation complète sur le projet (architecture, déploiement, APIs), veuillez consulter le dépôt du backend :
+## Déploiement de l'API sur Render
 
--   **[Documentation Complète du Projet](https://github.com/your-github-username/voom-delivery-backend/blob/main/DOCUMENTATION_FINALE.md)**
--   **[Guide de Déploiement](https://github.com/your-github-username/voom-delivery-backend/blob/main/GUIDE_DEPLOIEMENT.md)**
--   **[Cahier des Charges Original](https://github.com/your-github-username/voom-delivery-backend/blob/main/Cahier_des_Charges_VOOM_Delivery_MAJ(1).docx)**
+1. Render › **New** › **Blueprint** › choisir ce dépôt : `render.yaml` crée le service web **`voom-delivery-api`** (Docker, dossier `backend/`) et la base PostgreSQL **`voom-delivery-db`**.
+2. Renseigner les variables demandées : `ADMIN_EMAIL`, `ADMIN_PHONE`, `ADMIN_PASSWORD`.
+3. Au démarrage, le conteneur exécute les migrations et crée/met à jour le compte admin.
+4. URL de l'API : `https://voom-delivery-api.onrender.com/api/v1` · admin : `https://voom-delivery-api.onrender.com/admin`.
 
-## 👥 Équipe de Développement
+> ⚠️ Plan gratuit : le disque est éphémère (les captures de paiement et photos produits sont perdues au redéploiement) et la base PostgreSQL gratuite expire après 30 jours. Pour la production, passer en plan payant et activer le disque prévu (commenté) dans `render.yaml`.
 
-Ce projet a été développé par l'équipe VOOM Delivery.
+## API (préfixe `/api/v1`, jeton `Authorization: Bearer …`)
 
-## 📄 Licence
-
-Ce projet est développé pour VOOM Delivery. Tous droits réservés.
-
----
-
-**🎉 Application VOOM Delivery - Prête pour la Production !**
-
-*Développée avec ❤️ pour révolutionner la livraison au Togo*
-
+| Méthode | Route | Rôle | Description |
+|---|---|---|---|
+| POST | `/register` | public | Inscription client |
+| POST | `/login` | public | Connexion (`login` = email ou téléphone) |
+| GET | `/me` · POST `/logout` | connecté | Profil · déconnexion |
+| GET | `/products?category=shopping\|agro` | connecté | Marketplace |
+| GET | `/payment-info` | connecté | Numéros marchands Flooz / Mixx |
+| POST | `/deliveries/quote` | client | Estimation du prix |
+| GET/POST | `/deliveries` | client | Mes livraisons · nouvelle demande |
+| GET | `/deliveries/{id}` | client | Détail |
+| POST | `/deliveries/{id}/payment` | client | Preuve de paiement (multipart, `screenshot`) |
+| POST | `/deliveries/{id}/cancel` | client | Annulation (avant confirmation du paiement) |
+| GET | `/courier/deliveries[?scope=history]` | livreur | Livraisons assignées |
+| GET | `/courier/deliveries/{id}` | livreur | Détail + coordonnées A/B |
+| POST | `/courier/deliveries/{id}/status` | livreur | `picked_up` puis `delivered` |
