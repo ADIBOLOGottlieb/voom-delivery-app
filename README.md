@@ -18,8 +18,9 @@ Client                         Admin (web /admin)                 Livreur
 1. Demande A → B (carte)
    prix calculé (distance)
 2. Paie Flooz / Mixx
-   + envoie la capture  ──▶ 3. Vérifie la transaction
-                               ✔ confirme  /  ✘ refuse (motif)
+   via l'agrégateur ──▶ 3. Paiement confirmé automatiquement
+   (ou capture d'écran       (mode manuel : l'admin vérifie la capture)
+    en mode manuel)
                             4. Assigne un livreur actif  ──▶ 5. Voit la livraison assignée
                                                              carte A/B, itinéraire, appel
                                                           6. « Colis récupéré » puis « Livré »
@@ -29,7 +30,38 @@ Client                         Admin (web /admin)                 Livreur
 - **Rôles** : `client` (inscription libre dans l'app), `livreur` (compte créé par l'admin uniquement), `admin` (panneau web).
 - **Marketplace** (Shopping, Agroalimentaire) : produits gérés par l'admin. Une commande crée une livraison dont le point A est l'adresse du vendeur ; le total = articles + frais de livraison.
 - **Tarif** : forfait + distance estimée × prix/km (+ supplément Express), minimum configurable, arrondi à 50 F. Réglable dans *Admin › Réglages*.
-- **Paiement** : numéros marchands Flooz / Mixx by Yas configurés dans *Admin › Réglages*. Une référence de transaction ne peut servir qu'une fois. Un livreur ne peut être assigné qu'après confirmation du paiement.
+- **Paiement** : Flooz et Mixx by Yas via un agrégateur (voir ci-dessous), confirmé automatiquement. Un livreur ne peut être assigné qu'après confirmation du paiement.
+
+## Paiement Flooz / Mixx by Yas
+
+### Comparatif des agrégateurs (tarifs officiels pour le Togo, octobre 2026)
+
+| Agrégateur | Flooz | Mixx by Yas | Frais fixes | Reversement | Expérience client |
+|---|---|---|---|---|---|
+| **KKiaPay** – formule Intégration ✅ | **1,9 %** payés par le client | **1,9 %** payés par le client | 9 900 FCFA HT/mois | Mobile money ou banque | Page de paiement sécurisée |
+| PayGate Global (Lomé) | 2,5 % payés par l'agence | 3 % payés par l'agence | aucun | Flooz J+1, T-Money tous les 10 jours | Demande de paiement directement sur le téléphone |
+| FedaPay | 2,5 % | 3,5 % | aucun | — | Page de paiement |
+
+Sources : [kkiapay.me/tarifs](https://kkiapay.me/tarifs/) (onglet Togo), [paygateglobal.com](https://www.paygateglobal.com/), [fedapay.com/pricing](https://www.fedapay.com/pricing) (taux Togo). Vérifier les tarifs à la signature du contrat.
+
+**Recommandation : KKiaPay**, le taux le plus bas pour les deux opérateurs. Les frais de 1,9 % sont payés par le client : l'agence reçoit le montant complet et ne paie que l'abonnement mensuel. **PayGate** est intégré comme alternative : il n'y a pas d'abonnement, ce qui est plus avantageux tant que l'agence encaisse moins de ~360 000 FCFA par mois (2,75 % moyens × volume < 9 900 FCFA).
+
+### Mise en service
+
+1. Ouvrir un compte marchand (registre de commerce / carte d'immatriculation fiscale, pièce d'identité du gérant) :
+   - KKiaPay : https://kkiapay.me — formule « Intégration », pays Togo ;
+   - ou PayGate : https://paygateglobal.com.
+2. Dans Render › service `voom-delivery-api` › Environment :
+   - KKiaPay : `PAYMENT_GATEWAY=kkiapay`, `KKIAPAY_PUBLIC_KEY`, `KKIAPAY_PRIVATE_KEY`, `KKIAPAY_SECRET` (tableau de bord KKiaPay › Développeurs) ; `KKIAPAY_SANDBOX=true` pour tester avec les clés sandbox, puis `false` avec les clés de production ;
+   - PayGate : `PAYMENT_GATEWAY=paygate`, `PAYGATE_AUTH_TOKEN`.
+3. Déclarer l'URL de notification (webhook) dans le tableau de bord de l'agrégateur :
+   - KKiaPay : `https://voom-delivery-api.onrender.com/api/v1/webhooks/kkiapay` (et recopier le secret choisi dans `KKIAPAY_WEBHOOK_SECRET`) ;
+   - PayGate : `https://voom-delivery-api.onrender.com/api/v1/webhooks/paygate`.
+4. Vérifier dans *Admin › Réglages* que le bandeau indique « Paiement en ligne actif ».
+
+Tant que les clés ne sont pas renseignées, l'app reste en **mode manuel** (virement au numéro marchand + capture d'écran vérifiée par l'admin).
+
+**Sécurité** : les webhooks ne font que déclencher une vérification ; chaque paiement est confirmé uniquement après interrogation de l'API de l'agrégateur avec les clés privées (montant contrôlé, une transaction ne peut payer qu'une seule livraison).
 
 ## Identité visuelle
 

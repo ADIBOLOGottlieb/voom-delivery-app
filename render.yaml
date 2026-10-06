@@ -44,6 +44,23 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      # Paiement Flooz / Mixx by Yas : kkiapay (recommandé, 1,9 %) | paygate | manual
+      # Sans clés renseignées, l'app repasse automatiquement en mode manuel (capture d'écran).
+      - key: PAYMENT_GATEWAY
+        value: kkiapay
+      - key: KKIAPAY_PUBLIC_KEY
+        sync: false
+      - key: KKIAPAY_PRIVATE_KEY
+        sync: false
+      - key: KKIAPAY_SECRET
+        sync: false
+      - key: KKIAPAY_WEBHOOK_SECRET
+        sync: false
+      # true = clés de test ; passer à false avec les clés de production
+      - key: KKIAPAY_SANDBOX
+        value: "true"
+      - key: PAYGATE_AUTH_TOKEN
+        sync: false
     # Le disque d'une instance « free » est éphémère : captures de paiement et photos produits
     # sont perdues à chaque redéploiement. En production, passer en plan payant et ajouter :
     # disk:

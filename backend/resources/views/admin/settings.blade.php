@@ -10,7 +10,25 @@
 
         <section class="bg-white rounded-lg shadow-sm p-6 space-y-4">
             <h2 class="font-semibold">Paiement mobile money</h2>
-            <p class="text-sm text-gray-500">Ces numéros sont affichés aux clients dans l'application. Un moyen sans numéro n'est pas proposé.</p>
+
+            <div class="rounded border p-4 text-sm {{ $gateway['active'] ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200' }}">
+                @if ($gateway['active'])
+                    <p class="font-semibold text-green-800">
+                        Paiement en ligne actif : {{ $gateway['active'] === 'kkiapay' ? 'KKiaPay' : 'PayGate Global' }}
+                        @if ($gateway['active'] === 'kkiapay' && $gateway['sandbox']) <span class="text-orange-700">(mode test / sandbox)</span> @endif
+                    </p>
+                    <p class="text-gray-600 mt-1">Les clients paient Flooz ou Mixx by Yas dans l'app ; le paiement est confirmé automatiquement.</p>
+                @else
+                    <p class="font-semibold text-orange-800">Mode manuel : virement sur les numéros ci-dessous + capture d'écran à vérifier.</p>
+                    @if ($gateway['requested'] !== 'manual')
+                        <p class="text-gray-600 mt-1">« {{ $gateway['requested'] }} » est demandé mais ses clés sont absentes du fichier .env.</p>
+                    @endif
+                @endif
+                <p class="text-gray-500 mt-2">Agrégateur et clés : variables <code>PAYMENT_GATEWAY</code>, <code>KKIAPAY_*</code> / <code>PAYGATE_AUTH_TOKEN</code> (voir le README).</p>
+                <p class="text-gray-500">URL de notification à déclarer : KKiaPay <code class="break-all">{{ $gateway['webhook_kkiapay'] }}</code> · PayGate <code class="break-all">{{ $gateway['webhook_paygate'] }}</code></p>
+            </div>
+
+            <p class="text-sm text-gray-500">Numéros marchands (mode manuel) : affichés aux clients uniquement si le paiement en ligne est désactivé.</p>
             <div>
                 <label class="block text-sm font-medium mb-1">Nom du compte marchand</label>
                 <input name="merchant_name" value="{{ old('merchant_name', $settings['merchant_name']) }}" required class="w-full border rounded px-3 py-2">

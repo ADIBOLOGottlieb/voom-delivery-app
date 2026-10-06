@@ -4,17 +4,27 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Services\Payments\PaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class SettingController extends Controller
 {
-    public function edit(): View
+    public function edit(PaymentService $payments): View
     {
         $settings = collect(Setting::DEFAULTS)->mapWithKeys(fn ($default, $key) => [$key => Setting::get($key)]);
 
-        return view('admin.settings', compact('settings'));
+        // Les clés d'agrégateur sont des secrets : affichées en lecture seule, modifiables uniquement dans .env.
+        $gateway = [
+            'requested' => config('payments.gateway'),
+            'active' => $payments->gateway()?->name(),
+            'sandbox' => (bool) config('payments.kkiapay.sandbox'),
+            'webhook_kkiapay' => route('webhooks.kkiapay'),
+            'webhook_paygate' => route('webhooks.paygate'),
+        ];
+
+        return view('admin.settings', compact('settings', 'gateway'));
     }
 
     public function update(Request $request): RedirectResponse

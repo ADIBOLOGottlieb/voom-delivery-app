@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:voom_delivery_app/main.dart';
 import 'package:voom_delivery_app/models/delivery.dart';
+import 'package:voom_delivery_app/models/product.dart';
 import 'package:voom_delivery_app/services/api_client.dart';
 import 'package:voom_delivery_app/widgets/voom_logo.dart';
 
@@ -84,6 +85,32 @@ void main() {
 
     await expectLater(api.get('/me'), throwsA(isA<ApiException>()));
     expect(unauthorized, isTrue);
+  });
+
+  test('PaymentInfo et CheckoutStart lisent le mode agrégateur', () {
+    final info = PaymentInfo.fromJson({
+      'mode': 'gateway',
+      'gateway': 'kkiapay',
+      'fee_note': '1,9 % de frais de service à la charge du payeur',
+      'merchant_name': 'VOOM Delivery',
+      'instructions': null,
+      'methods': [
+        {'method': 'flooz', 'label': 'Flooz (Moov Africa)', 'merchant_number': null},
+        {'method': 'mixx', 'label': 'Mixx by Yas', 'merchant_number': null},
+      ],
+    });
+    expect(info.isGateway, isTrue);
+    expect(info.methods.map((m) => m.method), ['flooz', 'mixx']);
+    expect(info.methods.first.merchantNumber, isNull);
+
+    final start = CheckoutStart.fromJson({
+      'payment': {'id': 7},
+      'mode': 'redirect',
+      'message': 'Finalisez le paiement',
+      'redirect_url': 'https://voom-delivery-api.onrender.com/paiement/abc',
+    });
+    expect(start.paymentId, 7);
+    expect(start.redirectUrl, contains('/paiement/'));
   });
 
   test('Delivery.fromJson lit les points A/B et le livreur', () {

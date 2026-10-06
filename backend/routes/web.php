@@ -5,9 +5,16 @@ use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\CheckoutPageController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin');
+
+// Page de paiement KKiaPay ouverte depuis l'app (le jeton UUID du paiement sert de lien à usage unique).
+Route::middleware('throttle:30,1')->group(function () {
+    Route::get('/paiement/{token}', [CheckoutPageController::class, 'show'])->whereUuid('token')->name('checkout.show');
+    Route::get('/paiement/{token}/retour', [CheckoutPageController::class, 'return'])->whereUuid('token')->name('checkout.return');
+});
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('guest')->group(function () {

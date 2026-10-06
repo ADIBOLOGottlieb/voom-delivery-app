@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Models\Setting;
+use App\Services\Payments\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -32,18 +33,27 @@ class CatalogController extends Controller
         return ProductResource::collection($products);
     }
 
-    /** Comptes marchands de l'agence pour le paiement mobile money. */
-    public function paymentInfo(): JsonResponse
+    /**
+     * Mode de paiement proposé à l'app :
+     * - gateway : paiement automatique via l'agrégateur (Flooz et Mixx toujours proposés) ;
+     * - manual  : virement sur les numéros marchands + capture d'écran.
+     */
+    public function paymentInfo(PaymentService $payments): JsonResponse
     {
+        $gateway = $payments->gateway();
+
         $methods = [];
         foreach (PaymentMethod::cases() as $method) {
             $number = Setting::get("{$method->value}_merchant_number");
-            if ($number) {
-                $methods[] = ['method' => $method->value, 'label' => $method->label(), 'merchant_number' => $number];
+            if ($gateway || $number) {
+                $methods[] = ['method' => $method->value, 'label' => $method->label(), 'merchant_number' => $number ?: null];
             }
         }
 
         return response()->json([
+            'mode' => $gateway ? 'gateway' : 'manual',
+            'gateway' => $gateway?->name(),
+            'fee_note' => $gateway?->name() === 'kkiapay' ? config('payments.kkiapay.fee_label') : null,
             'merchant_name' => Setting::get('merchant_name'),
             'instructions' => Setting::get('payment_instructions'),
             'methods' => $methods,

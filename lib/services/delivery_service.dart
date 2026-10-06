@@ -59,6 +59,22 @@ class DeliveryService {
   Future<PaymentInfo> paymentInfo() async =>
       PaymentInfo.fromJson(await _api.get('/payment-info') as Map<String, dynamic>);
 
+  /// Lance un paiement via l'agrégateur (Flooz ou Mixx by Yas).
+  Future<CheckoutStart> checkout({required int deliveryId, required String method, required String phone}) async =>
+      CheckoutStart.fromJson(
+        await _api.post('/deliveries/$deliveryId/checkout', {'method': method, 'phone': phone}) as Map<String, dynamic>,
+      );
+
+  /// Statut d'une tentative ; le serveur interroge l'agrégateur à chaque appel.
+  /// Renvoie (statut de la tentative, livraison à jour).
+  Future<(String, Delivery)> paymentStatus({required int deliveryId, required int paymentId}) async {
+    final data = await _api.get('/deliveries/$deliveryId/payments/$paymentId') as Map<String, dynamic>;
+    return (
+      (data['payment'] as Map<String, dynamic>)['status'] as String,
+      Delivery.fromJson(data['delivery'] as Map<String, dynamic>),
+    );
+  }
+
   Future<List<Product>> products({required String category, String? search}) async => _list(
         await _api.get('/products', query: {
           'category': category,
