@@ -7,6 +7,7 @@ import '../../services/delivery_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/formatters.dart';
 import '../../utils/launchers.dart';
+import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/delivery_map.dart';
 import '../../widgets/status_chip.dart';
 import 'payment_screen.dart';
@@ -83,94 +84,116 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
     final d = _delivery;
     return Scaffold(
       appBar: AppBar(title: Text(d?.reference ?? 'Livraison')),
-      body: d == null
-          ? Center(
-              child: _error == null
-                  ? const CircularProgressIndicator()
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_error!, style: const TextStyle(color: AppColors.error)),
-                        TextButton(onPressed: _load, child: const Text('Réessayer')),
-                      ],
-                    ),
-            )
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Wrap(spacing: 8, runSpacing: 8, children: [
-                    StatusChip.delivery(d),
-                    StatusChip.payment(d),
-                    StatusChip(label: d.type.label, color: AppColors.secondary),
-                  ]),
-                  const SizedBox(height: 16),
-                  _PaymentBanner(delivery: d, onPay: _pay),
-                  const SizedBox(height: 16),
-                  DeliveryMap(pickup: d.pickup, dropoff: d.dropoff, height: 220),
-                  const SizedBox(height: 16),
-                  _PointTile(letter: 'A', color: AppColors.success, title: 'Récupération', point: d.pickup),
-                  _PointTile(letter: 'B', color: AppColors.error, title: 'Destination', point: d.dropoff),
-                  if (d.courier != null)
-                    Card(
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: AppColors.secondary,
-                          child: Icon(Icons.delivery_dining, color: AppColors.primary),
+      body: SafeArea(
+          top: false,
+          child: d == null
+              ? Center(
+                  child: _error == null
+                      ? const CircularProgressIndicator()
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(_error!, style: const TextStyle(color: AppColors.error)),
+                            TextButton(onPressed: _load, child: const Text('Réessayer')),
+                          ],
                         ),
-                        title: Text('Livreur : ${d.courier!.name}'),
-                        subtitle: Text(d.courier!.vehicle ?? ''),
-                        trailing: d.courier!.phoneNumber == null
-                            ? null
-                            : IconButton(
-                                icon: const Icon(Icons.call, color: AppColors.success),
-                                onPressed: () => callPhone(context, d.courier!.phoneNumber!),
-                              ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      Wrap(spacing: 8, runSpacing: 8, children: [
+                        StatusChip.delivery(d),
+                        StatusChip.payment(d),
+                        StatusChip(label: d.type.label, color: AppColors.secondary),
+                      ]),
+                      const SizedBox(height: 16),
+                      _PaymentBanner(delivery: d),
+                      const SizedBox(height: 16),
+                      DeliveryMap(pickup: d.pickup, dropoff: d.dropoff, height: 220),
+                      const SizedBox(height: 16),
+                      _PointTile(letter: 'A', color: AppColors.success, title: 'Récupération', point: d.pickup),
+                      _PointTile(letter: 'B', color: AppColors.error, title: 'Destination', point: d.dropoff),
+                      if (d.courier != null)
+                        Card(
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: AppColors.secondary,
+                              child: Icon(Icons.delivery_dining, color: AppColors.primary),
+                            ),
+                            title: Text('Livreur : ${d.courier!.name}'),
+                            subtitle: Text(d.courier!.vehicle ?? ''),
+                            trailing: d.courier!.phoneNumber == null
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.call, color: AppColors.success),
+                                    onPressed: () => callPhone(context, d.courier!.phoneNumber!),
+                                  ),
+                          ),
+                        ),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              if (d.packageDescription != null) _Row('Contenu', d.packageDescription!),
+                              if (d.scheduledAt != null) _Row('Programmée', formatDateTime(d.scheduledAt!)),
+                              _Row('Distance estimée', formatKm(d.distanceKm)),
+                              _Row('Frais de livraison', formatFcfa(d.deliveryFee)),
+                              if (d.itemsAmount > 0) _Row('Articles', formatFcfa(d.itemsAmount)),
+                              const Divider(),
+                              _Row('Total', formatFcfa(d.totalAmount), bold: true),
+                              _Row('Créée le', formatDateTime(d.createdAt)),
+                              if (d.deliveredAt != null) _Row('Livrée le', formatDateTime(d.deliveredAt!)),
+                              if (d.cancelReason != null) _Row('Annulation', d.cancelReason!),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          if (d.packageDescription != null) _Row('Contenu', d.packageDescription!),
-                          if (d.scheduledAt != null) _Row('Programmée', formatDateTime(d.scheduledAt!)),
-                          _Row('Distance estimée', formatKm(d.distanceKm)),
-                          _Row('Frais de livraison', formatFcfa(d.deliveryFee)),
-                          if (d.itemsAmount > 0) _Row('Articles', formatFcfa(d.itemsAmount)),
-                          const Divider(),
-                          _Row('Total', formatFcfa(d.totalAmount), bold: true),
-                          _Row('Créée le', formatDateTime(d.createdAt)),
-                          if (d.deliveredAt != null) _Row('Livrée le', formatDateTime(d.deliveredAt!)),
-                          if (d.cancelReason != null) _Row('Annulation', d.cancelReason!),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
-                  if (d.canCancel) ...[
-                    const SizedBox(height: 16),
-                    OutlinedButton(
-                      onPressed: _busy ? null : _cancel,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                      ),
-                      child: const Text('Annuler la demande'),
-                    ),
-                  ],
-                ],
+                )),
+      bottomNavigationBar: d == null || !(d.canPay || d.canCancel) ? null : _actions(d),
+    );
+  }
+
+  /// Actions du client regroupées en bas de l'écran, à portée du pouce.
+  Widget _actions(Delivery d) {
+    final cancel = OutlinedButton(
+      onPressed: _busy ? null : _cancel,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.error,
+        side: const BorderSide(color: AppColors.error),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+      ),
+      child: const Text('Annuler'),
+    );
+    if (!d.canPay) return BottomActionBar(children: [cancel]);
+
+    return BottomActionBar(
+      children: [
+        Row(
+          children: [
+            if (d.canCancel) ...[cancel, const SizedBox(width: 12)],
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _busy ? null : _pay,
+                icon: const Icon(Icons.payments_outlined),
+                label: Text('Payer ${formatFcfa(d.totalAmount)}'),
               ),
             ),
+          ],
+        ),
+      ],
     );
   }
 }
 
 class _PaymentBanner extends StatelessWidget {
   final Delivery delivery;
-  final VoidCallback onPay;
 
-  const _PaymentBanner({required this.delivery, required this.onPay});
+  const _PaymentBanner({required this.delivery});
 
   @override
   Widget build(BuildContext context) {
@@ -193,20 +216,7 @@ class _PaymentBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(text),
-          if (d.canPay) ...[
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: onPay,
-              icon: const Icon(Icons.payments_outlined),
-              label: const Text('Payer et envoyer la capture'),
-            ),
-          ],
-        ],
-      ),
+      child: Text(text),
     );
   }
 }

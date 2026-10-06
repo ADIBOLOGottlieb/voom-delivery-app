@@ -7,6 +7,7 @@ import '../../services/delivery_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/formatters.dart';
 import '../../utils/launchers.dart';
+import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/delivery_map.dart';
 import '../../widgets/status_chip.dart';
 
@@ -94,7 +95,7 @@ class _CourierDeliveryScreenState extends State<CourierDeliveryScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 24 + MediaQuery.paddingOf(context).bottom),
                 children: [
                   Wrap(spacing: 8, children: [
                     StatusChip.delivery(d),
@@ -110,7 +111,7 @@ class _CourierDeliveryScreenState extends State<CourierDeliveryScreen> {
                     color: AppColors.success,
                     point: d.pickup,
                     done: d.status == DeliveryStatus.pickedUp || d.status == DeliveryStatus.delivered,
-                    navigateLabel: 'Itinéraire vers la récupération',
+                    navigateLabel: 'Itinéraire vers A',
                   ),
                   _StopCard(
                     letter: 'B',
@@ -118,7 +119,7 @@ class _CourierDeliveryScreenState extends State<CourierDeliveryScreen> {
                     color: AppColors.error,
                     point: d.dropoff,
                     done: d.status == DeliveryStatus.delivered,
-                    navigateLabel: 'Itinéraire vers la destination',
+                    navigateLabel: 'Itinéraire vers B',
                   ),
                   Card(
                     child: Padding(
@@ -177,18 +178,32 @@ class _CourierDeliveryScreenState extends State<CourierDeliveryScreen> {
     };
     if (status == null) return null;
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ElevatedButton.icon(
-          onPressed: _updating ? null : () => _advance(status, confirm),
-          icon: _updating
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : Icon(status == DeliveryStatus.pickedUp ? Icons.inventory_2 : Icons.check_circle),
-          label: Text(label),
-          style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(54)),
+    // Prochaine étape : le point A tant que le colis n'est pas récupéré, puis le point B.
+    final next = status == DeliveryStatus.pickedUp ? d.pickup : d.dropoff;
+
+    return BottomActionBar(
+      children: [
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => openNavigation(context, next.lat, next.lng),
+              icon: const Icon(Icons.navigation_outlined),
+              label: Text(status == DeliveryStatus.pickedUp ? 'Vers A' : 'Vers B'),
+              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 14)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _updating ? null : () => _advance(status, confirm),
+                icon: _updating
+                    ? const ButtonProgress()
+                    : Icon(status == DeliveryStatus.pickedUp ? Icons.inventory_2 : Icons.check_circle),
+                label: FittedBox(fit: BoxFit.scaleDown, child: Text(label)),
+              ),
+            ),
+          ],
         ),
-      ),
+      ],
     );
   }
 }

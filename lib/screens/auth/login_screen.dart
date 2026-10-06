@@ -49,95 +49,101 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 48),
-              Center(
-                child: Column(
-                  children: [
-                    const VoomLogo(width: 240),
-                    const SizedBox(height: 20),
-                    Text('Connectez-vous à votre compte', style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 40),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _loginController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      autofillHints: const [AutofillHints.username],
-                      decoration: const InputDecoration(
-                        labelText: 'Email ou téléphone',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty) ? 'Saisissez votre email ou téléphone' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      autofillHints: const [AutofillHints.password],
-                      onFieldSubmitted: (_) => _login(),
-                      decoration: InputDecoration(
-                        labelText: 'Mot de passe',
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        suffixIcon: IconButton(
-                          tooltip: _obscurePassword ? 'Afficher' : 'Masquer',
-                          icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                        ),
-                      ),
-                      validator: (value) =>
-                          (value == null || value.isEmpty) ? 'Saisissez votre mot de passe' : null,
-                    ),
-                    const SizedBox(height: 24),
-                    Consumer<AuthService>(
-                      builder: (context, auth, _) => SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: auth.isLoading ? null : _login,
-                          child: auth.isLoading
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.onPrimary),
-                                )
-                              : const Text('Se connecter'),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
+        // Contenu centré verticalement, et défilable quand le clavier est ouvert.
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Pas encore de compte ? ', style: Theme.of(context).textTheme.bodyMedium),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                  Center(
+                    child: Column(
+                      children: [
+                        const VoomLogo(width: 240),
+                        const SizedBox(height: 20),
+                        Text('Connectez-vous à votre compte', style: Theme.of(context).textTheme.bodyMedium),
+                      ],
                     ),
-                    child: const Text("S'inscrire", style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(height: 40),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _loginController,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.username],
+                          decoration: const InputDecoration(
+                            labelText: 'Email ou téléphone',
+                            prefixIcon: Icon(Icons.person_outline),
+                          ),
+                          validator: (value) =>
+                              (value == null || value.trim().isEmpty) ? 'Saisissez votre email ou téléphone' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          autofillHints: const [AutofillHints.password],
+                          onFieldSubmitted: (_) => _login(),
+                          decoration: InputDecoration(
+                            labelText: 'Mot de passe',
+                            prefixIcon: const Icon(Icons.lock_outlined),
+                            suffixIcon: IconButton(
+                              tooltip: _obscurePassword ? 'Afficher' : 'Masquer',
+                              icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          validator: (value) =>
+                              (value == null || value.isEmpty) ? 'Saisissez votre mot de passe' : null,
+                        ),
+                        const SizedBox(height: 24),
+                        Consumer<AuthService>(
+                          builder: (context, auth, _) => SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: auth.isLoading ? null : _login,
+                              child: auth.isLoading
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.onPrimary),
+                                    )
+                                  : const Text('Se connecter'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Pas encore de compte ? ', style: Theme.of(context).textTheme.bodyMedium),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                        ),
+                        child: const Text("S'inscrire", style: TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Vous êtes livreur ? Votre compte est créé par l'agence VOOM.",
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                "Vous êtes livreur ? Votre compte est créé par l'agence VOOM.",
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+            ),
           ),
         ),
       ),

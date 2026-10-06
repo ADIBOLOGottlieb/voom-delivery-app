@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../utils/colors.dart';
+import '../../widgets/bottom_action_bar.dart';
 
 /// Sélection d'un point sur la carte : l'utilisateur déplace la carte sous l'épingle centrale.
 /// Renvoie le [LatLng] choisi via Navigator.pop.
@@ -73,12 +74,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
           ),
-          // Épingle fixe au centre ; sa pointe désigne le point choisi.
-          const IgnorePointer(
+          // Épingle fixe : remontée d'une demi-hauteur pour que sa pointe soit au centre de la carte.
+          IgnorePointer(
             child: Center(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 40),
-                child: Icon(Icons.location_pin, size: 48, color: AppColors.error),
+              child: Transform.translate(
+                offset: const Offset(0, -24),
+                child: const Icon(Icons.location_pin, size: 48, color: AppColors.error),
               ),
             ),
           ),
@@ -98,7 +99,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           ),
           Positioned(
             right: 16,
-            bottom: 96,
+            bottom: 16,
             child: FloatingActionButton.small(
               heroTag: 'my-location',
               tooltip: 'Ma position',
@@ -109,15 +110,14 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   : const Icon(Icons.my_location, color: AppColors.secondary),
             ),
           ),
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 24,
-            child: ElevatedButton.icon(
-              onPressed: () => Navigator.of(context).pop(_target),
-              icon: const Icon(Icons.check),
-              label: const Text('Valider cet emplacement'),
-            ),
+        ],
+      ),
+      bottomNavigationBar: BottomActionBar(
+        children: [
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(context).pop(_target),
+            icon: const Icon(Icons.check),
+            label: const Text('Valider cet emplacement'),
           ),
         ],
       ),

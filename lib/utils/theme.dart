@@ -33,6 +33,7 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
+        titleLarge: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w600),
         titleMedium: GoogleFonts.poppins(
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -51,15 +52,12 @@ class AppTheme {
           color: AppColors.textHint,
         ),
       ),
-      appBarTheme: AppBarTheme(
+      // Pas de titleTextStyle ici : le titre reprend titleLarge dans la couleur de premier plan
+      // de chaque barre (blanc sur bleu, jaune sur noir…) au lieu d'être toujours noir.
+      appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
         elevation: 0,
-        titleTextStyle: GoogleFonts.poppins(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: AppColors.onPrimary,
-        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

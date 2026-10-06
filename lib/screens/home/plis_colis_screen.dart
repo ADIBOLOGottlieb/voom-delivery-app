@@ -5,6 +5,7 @@ import '../../models/delivery.dart';
 import '../../services/delivery_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/delivery_type_tiles.dart';
 import '../../widgets/status_chip.dart';
 import 'delivery_detail_screen.dart';
 import 'new_delivery_screen.dart';
@@ -59,46 +60,11 @@ class _PlisColisScreenState extends State<PlisColisScreen> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
             Text('Nouvelle demande', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 92,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  for (final (type, icon, color) in [
-                    (DeliveryType.plis, Icons.mail, AppColors.primaryDark),
-                    (DeliveryType.colis, Icons.inventory_2, AppColors.info),
-                    (DeliveryType.express, Icons.flash_on, AppColors.warning),
-                    (DeliveryType.programmee, Icons.schedule, AppColors.success),
-                  ])
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: InkWell(
-                        onTap: () => _create(type),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: 92,
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(icon, color: color, size: 30),
-                              const SizedBox(height: 6),
-                              Text(type.label, style: const TextStyle(fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            DeliveryTypeTiles(onTap: _create),
             const SizedBox(height: 24),
             Text('Mes livraisons', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
@@ -119,7 +85,7 @@ class _PlisColisScreenState extends State<PlisColisScreen> {
                   return const Padding(
                     padding: EdgeInsets.all(32),
                     child: Text(
-                      'Aucune livraison. Appuyez sur « Nouvelle livraison » pour commencer.',
+                      'Aucune livraison. Choisissez un type ci-dessus pour commencer.',
                       textAlign: TextAlign.center,
                     ),
                   );
@@ -129,14 +95,6 @@ class _PlisColisScreenState extends State<PlisColisScreen> {
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'new-delivery',
-        onPressed: _create,
-        backgroundColor: AppColors.info,
-        foregroundColor: AppColors.background,
-        icon: const Icon(Icons.add),
-        label: const Text('Nouvelle livraison'),
       ),
     );
   }

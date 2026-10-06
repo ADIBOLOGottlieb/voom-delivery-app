@@ -7,8 +7,7 @@ import '../models/user.dart';
 import 'api_client.dart';
 
 class AuthService extends ChangeNotifier {
-  AuthService(this._api, {FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage() {
+  AuthService(this._api, {FlutterSecureStorage? storage}) : _storage = storage ?? const FlutterSecureStorage() {
     _api.onUnauthorized = _clearSession;
   }
 

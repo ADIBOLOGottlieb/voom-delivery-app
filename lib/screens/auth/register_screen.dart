@@ -74,8 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 20),
                 Text('Créer un compte client', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 8),
-                Text('Demandez vos livraisons en quelques secondes.',
-                    style: Theme.of(context).textTheme.bodyMedium),
+                Text('Demandez vos livraisons en quelques secondes.', style: Theme.of(context).textTheme.bodyMedium),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _nameController,

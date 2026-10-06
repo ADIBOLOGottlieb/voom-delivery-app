@@ -9,17 +9,14 @@ class DeliveryService {
   final ApiClient _api;
 
   List<T> _list<T>(dynamic response, T Function(Map<String, dynamic>) parse) =>
-      ((response as Map<String, dynamic>)['data'] as List)
-          .map((e) => parse(e as Map<String, dynamic>))
-          .toList();
+      ((response as Map<String, dynamic>)['data'] as List).map((e) => parse(e as Map<String, dynamic>)).toList();
 
   Delivery _one(dynamic response) =>
       Delivery.fromJson((response as Map<String, dynamic>)['data'] as Map<String, dynamic>);
 
   // --- Client ---------------------------------------------------------------
 
-  Future<List<Delivery>> myDeliveries() async =>
-      _list(await _api.get('/deliveries'), Delivery.fromJson);
+  Future<List<Delivery>> myDeliveries() async => _list(await _api.get('/deliveries'), Delivery.fromJson);
 
   Future<Delivery> getDelivery(int id) async => _one(await _api.get('/deliveries/$id'));
 
@@ -40,8 +37,7 @@ class DeliveryService {
     return DeliveryQuote.fromJson(data as Map<String, dynamic>);
   }
 
-  Future<Delivery> createDelivery(Map<String, dynamic> payload) async =>
-      _one(await _api.post('/deliveries', payload));
+  Future<Delivery> createDelivery(Map<String, dynamic> payload) async => _one(await _api.post('/deliveries', payload));
 
   Future<Delivery> cancelDelivery(int id) async => _one(await _api.post('/deliveries/$id/cancel'));
 

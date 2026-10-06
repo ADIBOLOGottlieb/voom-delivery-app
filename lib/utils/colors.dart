@@ -11,16 +11,15 @@ class AppColors {
   static const Color onSecondary = Color(0xFFFFFFFF); // Blanc sur noir
   static const Color onBackground = Color(0xFF000000); // Noir sur blanc
   static const Color onSurface = Color(0xFF000000); // Noir sur surface
-  
+
   // Couleurs d'état
   static const Color success = Color(0xFF4CAF50);
   static const Color warning = Color(0xFFFF9800);
   static const Color error = Color(0xFFF44336);
   static const Color info = Color(0xFF2196F3);
-  
+
   // Couleurs de texte
   static const Color textPrimary = Color(0xFF000000);
   static const Color textSecondary = Color(0xFF666666);
   static const Color textHint = Color(0xFF999999);
 }
-

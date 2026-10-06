@@ -12,6 +12,7 @@ import '../../services/auth_service.dart';
 import '../../services/delivery_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/bottom_action_bar.dart';
 
 /// Paiement par mobile money (Flooz / Mixx by Yas) vers le compte marchand de l'agence,
 /// puis envoi de la capture d'écran de la transaction pour vérification par l'admin.
@@ -54,8 +55,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _submit() async {
     final messenger = ScaffoldMessenger.of(context);
-    void error(String msg) =>
-        messenger.showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.error));
+    void error(String msg) => messenger.showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.error));
 
     if (_method == null) return error('Choisissez Flooz ou Mixx by Yas.');
     if (!_formKey.currentState!.validate()) return;
@@ -136,22 +136,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 const SizedBox(height: 20),
                 Text('1. Choisissez votre moyen de paiement', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    for (final m in info.methods)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: ChoiceChip(
-                            label: SizedBox(width: double.infinity, child: Text(m.label, textAlign: TextAlign.center)),
-                            selected: _method == m.method,
-                            selectedColor: AppColors.primary,
-                            onSelected: (_) => setState(() => _method = m.method),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                for (final m in info.methods)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _MethodTile(
+                      method: m,
+                      selected: _method == m.method,
+                      onTap: () => setState(() => _method = m.method),
+                    ),
+                  ),
                 if (selected != null) ...[
                   const SizedBox(height: 16),
                   Text('2. Envoyez le montant au compte marchand', style: Theme.of(context).textTheme.titleMedium),
@@ -168,8 +161,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         icon: const Icon(Icons.copy),
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: selected.merchantNumber));
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(const SnackBar(content: Text('Numéro copié')));
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Numéro copié')));
                         },
                       ),
                     ),
@@ -214,18 +206,66 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       child: Image.file(File(_screenshot!.path), height: 260, fit: BoxFit.contain),
                     ),
                   ],
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _sending ? null : _submit,
-                    child: _sending
-                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                        : const Text('Envoyer la preuve de paiement'),
-                  ),
+                  const SizedBox(height: 16),
                 ],
               ],
             ),
           );
         },
+      ),
+      // Le bouton d'envoi reste visible en bas, dès qu'un moyen de paiement est choisi.
+      bottomNavigationBar: _method == null
+          ? null
+          : BottomActionBar(
+              summary: Row(
+                children: [
+                  Expanded(child: Text('Montant', style: Theme.of(context).textTheme.bodyMedium)),
+                  Text(formatFcfa(amount), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _sending ? null : _submit,
+                  icon: _sending ? const ButtonProgress() : const Icon(Icons.send),
+                  label: const Text('Envoyer la preuve de paiement'),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+/// Moyen de paiement sélectionnable, libellé complet sur toute la largeur.
+class _MethodTile extends StatelessWidget {
+  final PaymentMethodInfo method;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MethodTile({required this.method, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppColors.primary.withValues(alpha: 0.25) : AppColors.background,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: selected ? AppColors.secondary : AppColors.textHint, width: selected ? 2 : 1),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                  color: selected ? AppColors.secondary : AppColors.textHint),
+              const SizedBox(width: 12),
+              Expanded(child: Text(method.label, style: Theme.of(context).textTheme.titleMedium)),
+              Text(method.merchantNumber, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
+        ),
       ),
     );
   }

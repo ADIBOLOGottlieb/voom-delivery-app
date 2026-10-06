@@ -58,8 +58,6 @@ class PaymentInfo {
   factory PaymentInfo.fromJson(Map<String, dynamic> json) => PaymentInfo(
         merchantName: json['merchant_name'] as String? ?? 'VOOM Delivery',
         instructions: json['instructions'] as String?,
-        methods: (json['methods'] as List)
-            .map((m) => PaymentMethodInfo.fromJson(m as Map<String, dynamic>))
-            .toList(),
+        methods: (json['methods'] as List).map((m) => PaymentMethodInfo.fromJson(m as Map<String, dynamic>)).toList(),
       );
 }

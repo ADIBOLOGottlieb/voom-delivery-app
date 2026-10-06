@@ -115,7 +115,9 @@ class _CourierListState extends State<_CourierList> with AutomaticKeepAliveClien
                   const Icon(Icons.inbox_outlined, size: 56, color: AppColors.textHint),
                   const SizedBox(height: 12),
                   Text(
-                    widget.history ? 'Aucune livraison terminée.' : 'Aucune livraison assignée pour le moment.\nTirez pour actualiser.',
+                    widget.history
+                        ? 'Aucune livraison terminée.'
+                        : 'Aucune livraison assignée pour le moment.\nTirez pour actualiser.',
                     textAlign: TextAlign.center,
                   ),
                 ]),
@@ -123,7 +125,7 @@ class _CourierListState extends State<_CourierList> with AutomaticKeepAliveClien
             ]);
           }
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(context).bottom),
             itemCount: items.length,
             itemBuilder: (context, i) => _CourierCard(
               delivery: items[i],
@@ -165,8 +167,7 @@ class _CourierCard extends StatelessWidget {
               Row(children: [
                 Text(d.reference, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(width: 8),
-                if (d.type == DeliveryType.express)
-                  const StatusChip(label: 'EXPRESS', color: AppColors.warning),
+                if (d.type == DeliveryType.express) const StatusChip(label: 'EXPRESS', color: AppColors.warning),
                 const Spacer(),
                 StatusChip.delivery(d),
               ]),

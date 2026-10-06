@@ -9,6 +9,8 @@ import '../../services/auth_service.dart';
 import '../../services/delivery_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/bottom_action_bar.dart';
+import '../../widgets/delivery_type_tiles.dart';
 import '../common/location_picker_screen.dart';
 
 /// Formulaire de demande de livraison du point A (récupération) au point B (destination).
@@ -35,9 +37,8 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
   final _description = TextEditingController();
   final _notes = TextEditingController();
 
-  late DeliveryType _type = widget.product != null && widget.initialType == DeliveryType.programmee
-      ? DeliveryType.colis
-      : widget.initialType;
+  late DeliveryType _type =
+      widget.product != null && widget.initialType == DeliveryType.programmee ? DeliveryType.colis : widget.initialType;
   LatLng? _pickup;
   LatLng? _dropoff;
   DateTime? _scheduledAt;
@@ -60,8 +61,14 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
   @override
   void dispose() {
     for (final c in [
-      _pickupAddress, _pickupName, _pickupPhone, _dropoffAddress,
-      _recipientName, _recipientPhone, _description, _notes,
+      _pickupAddress,
+      _pickupName,
+      _pickupPhone,
+      _dropoffAddress,
+      _recipientName,
+      _recipientPhone,
+      _description,
+      _notes,
     ]) {
       c.dispose();
     }
@@ -121,8 +128,7 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
 
   Future<void> _submit() async {
     final messenger = ScaffoldMessenger.of(context);
-    void error(String msg) =>
-        messenger.showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.error));
+    void error(String msg) => messenger.showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.error));
 
     if (!_formKey.currentState!.validate()) return;
     if (!_isOrder && _pickup == null) return error('Placez le point A (récupération) sur la carte.');
@@ -196,20 +202,13 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
             const SizedBox(height: 8),
             Text('Type de livraison', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final t in types)
-                  ChoiceChip(
-                    label: Text(t.label),
-                    selected: _type == t,
-                    selectedColor: AppColors.primary,
-                    onSelected: (_) {
-                      setState(() => _type = t);
-                      _refreshQuote();
-                    },
-                  ),
-              ],
+            DeliveryTypeTiles(
+              types: types.toList(),
+              selected: _type,
+              onTap: (t) {
+                setState(() => _type = t);
+                _refreshQuote();
+              },
             ),
             if (_type == DeliveryType.programmee) ...[
               const SizedBox(height: 12),
@@ -304,23 +303,24 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
                 prefixIcon: Icon(Icons.notes),
               ),
             ),
-            const SizedBox(height: 24),
-            if (!_isOrder) _QuoteBox(quote: _quote, loading: _quoting),
-            if (_isOrder)
-              Text(
-                'Les frais de livraison seront calculés selon la distance et ajoutés au total.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                  : Text(_isOrder ? 'Valider la commande' : 'Créer la demande'),
-            ),
-            const SizedBox(height: 24),
           ],
         ),
+      ),
+      // Prix et bouton toujours visibles, au-dessus de la barre de navigation du téléphone.
+      bottomNavigationBar: BottomActionBar(
+        summary: _isOrder
+            ? Text(
+                'Frais de livraison calculés selon la distance et ajoutés au total.',
+                style: Theme.of(context).textTheme.bodySmall,
+              )
+            : _QuoteSummary(quote: _quote, loading: _quoting),
+        children: [
+          ElevatedButton(
+            onPressed: _submitting ? null : _submit,
+            child: _submitting ? const ButtonProgress() : Text(_isOrder ? 'Valider la commande' : 'Créer la demande'),
+          ),
+        ],
       ),
     );
   }
@@ -377,31 +377,37 @@ class _MapButton extends StatelessWidget {
   }
 }
 
-class _QuoteBox extends StatelessWidget {
+/// Prix estimé affiché dans la barre fixe du bas.
+class _QuoteSummary extends StatelessWidget {
   final DeliveryQuote? quote;
   final bool loading;
 
-  const _QuoteBox({required this.quote, required this.loading});
+  const _QuoteSummary({required this.quote, required this.loading});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+    return SizedBox(
+      height: 28,
+      child: Row(
+        children: [
+          if (loading)
+            const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+          else if (quote == null)
+            Expanded(
+              child: Text(
+                'Placez A et B sur la carte pour voir le prix.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            )
+          else ...[
+            Expanded(
+              child:
+                  Text('Prix estimé · ${formatKm(quote!.distanceKm)}', style: Theme.of(context).textTheme.bodyMedium),
+            ),
+            Text(formatFcfa(quote!.deliveryFee), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ],
       ),
-      child: loading
-          ? const Center(child: CircularProgressIndicator())
-          : quote == null
-              ? const Text('Placez les points A et B pour voir le prix estimé.')
-              : Row(
-                  children: [
-                    Expanded(child: Text('Distance estimée : ${formatKm(quote!.distanceKm)}')),
-                    Text(formatFcfa(quote!.deliveryFee),
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  ],
-                ),
     );
   }
 }

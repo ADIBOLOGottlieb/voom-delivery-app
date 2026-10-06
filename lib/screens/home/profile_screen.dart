@@ -43,7 +43,7 @@ class ProfileScreen extends StatelessWidget {
         foregroundColor: AppColors.textPrimary,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(context).bottom),
         children: [
           Container(
             padding: const EdgeInsets.all(20),
@@ -60,8 +60,8 @@ class ProfileScreen extends StatelessWidget {
                 CircleAvatar(
                   radius: 40,
                   backgroundColor: AppColors.secondary,
-                  child: Text(user?.initial ?? 'U',
-                      style: textTheme.headlineMedium?.copyWith(color: AppColors.primary)),
+                  child:
+                      Text(user?.initial ?? 'U', style: textTheme.headlineMedium?.copyWith(color: AppColors.primary)),
                 ),
                 const SizedBox(height: 16),
                 Text(user?.name ?? 'Utilisateur',
