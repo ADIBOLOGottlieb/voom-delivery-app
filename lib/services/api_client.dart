@@ -41,6 +41,15 @@ class ApiClient {
   Future<dynamic> get(String path, {Map<String, String>? query}) =>
       _send(() => _http.get(_uri(path, query), headers: _headers));
 
+  /// Réveille le serveur (veille Render) dès l'ouverture de l'app, sans bloquer l'interface.
+  Future<void> warmUp() async {
+    try {
+      await _http.get(Uri.parse('${ApiConfig.serverRoot}/up')).timeout(ApiConfig.timeout);
+    } catch (_) {
+      // Sans importance : les vraies requêtes gèrent elles-mêmes les erreurs.
+    }
+  }
+
   Future<dynamic> post(String path, [Map<String, dynamic>? body]) => _send(
         () => _http.post(
           _uri(path),
@@ -71,7 +80,7 @@ class ApiClient {
     } on SocketException {
       throw ApiException('Impossible de joindre le serveur. Vérifiez votre connexion internet.');
     } on TimeoutException {
-      throw ApiException('Le serveur met trop de temps à répondre. Réessayez.');
+      throw ApiException('Le serveur démarre (cela peut prendre une minute). Réessayez dans quelques secondes.');
     } on http.ClientException {
       throw ApiException('Erreur réseau. Réessayez.');
     }

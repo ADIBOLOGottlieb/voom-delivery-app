@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +13,10 @@ import 'utils/theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('fr');
-  runApp(VoomDeliveryApp(api: ApiClient()));
+  final api = ApiClient();
+  // Réveille le serveur pendant l'écran de démarrage (l'hébergement gratuit se met en veille).
+  unawaited(api.warmUp());
+  runApp(VoomDeliveryApp(api: api));
 }
 
 class VoomDeliveryApp extends StatelessWidget {

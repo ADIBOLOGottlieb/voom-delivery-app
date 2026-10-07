@@ -12,5 +12,9 @@ class ApiConfig {
     defaultValue: bool.fromEnvironment('dart.vm.product') ? productionUrl : 'http://10.0.2.2:8000/api/v1',
   );
 
-  static const Duration timeout = Duration(seconds: 20);
+  /// Racine du serveur (sans /api/v1), pour l'URL de santé /up.
+  static String get serverRoot => baseUrl.replaceFirst(RegExp(r'/api/v\d+/?$'), '');
+
+  /// Large : le serveur Render gratuit peut mettre 30 à 60 s à sortir de veille.
+  static const Duration timeout = Duration(seconds: 60);
 }
