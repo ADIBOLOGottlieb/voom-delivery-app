@@ -68,8 +68,21 @@ class AuthController extends Controller
         return new UserResource($request->user());
     }
 
+    /** Jeton Firebase de l'appareil, pour les notifications push (rappels livreur, promos). */
+    public function deviceToken(Request $request): JsonResponse
+    {
+        $token = $request->validate(['token' => ['required', 'string', 'max:500']])['token'];
+
+        // Un appareil n'appartient qu'à un compte à la fois.
+        User::where('fcm_token', $token)->whereKeyNot($request->user()->id)->update(['fcm_token' => null]);
+        $request->user()->forceFill(['fcm_token' => $token])->save();
+
+        return response()->json(['message' => 'Appareil enregistré.']);
+    }
+
     public function logout(Request $request): JsonResponse
     {
+        $request->user()->forceFill(['fcm_token' => null])->save();
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Déconnecté.']);

@@ -28,6 +28,16 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Notifications push Firebase (JSON du compte de service, de préférence encodé en base64).
+    'fcm' => [
+        'credentials' => env('FIREBASE_CREDENTIALS'),
+    ],
+
+    // Secret attendu dans l'en-tête X-Cron-Key de POST /api/v1/cron/run.
+    'cron' => [
+        'secret' => env('CRON_SECRET'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

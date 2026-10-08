@@ -53,6 +53,13 @@
                     @if ($delivery->scheduled_at)
                         <dt class="text-gray-500">Programmée pour</dt><dd>{{ $delivery->scheduled_at->format('d/m/Y H:i') }}</dd>
                     @endif
+                    @if ($delivery->deadline_at)
+                        <dt class="text-gray-500">Heure limite</dt>
+                        <dd class="{{ $delivery->deadline_at->isPast() && ! $delivery->status->isFinal() ? 'text-red-700 font-semibold' : '' }}">
+                            {{ $delivery->deadline_at->format('d/m/Y H:i') }}
+                            @if ($delivery->deadline_at->isPast() && ! $delivery->status->isFinal()) · EN RETARD @endif
+                        </dd>
+                    @endif
                     <dt class="text-gray-500">Distance estimée</dt><dd>{{ $delivery->distance_km }} km</dd>
                     <dt class="text-gray-500">Frais de livraison</dt><dd>{{ $money($delivery->delivery_fee) }}</dd>
                     @if ($delivery->items_amount)

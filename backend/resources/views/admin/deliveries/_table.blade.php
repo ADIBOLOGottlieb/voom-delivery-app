@@ -20,7 +20,14 @@
                     <a href="{{ route('admin.deliveries.show', $delivery) }}">{{ $delivery->reference }}</a>
                 </td>
                 <td class="px-4 py-2">{{ $delivery->client?->name }}<div class="text-xs text-gray-500">{{ $delivery->client?->phone_number }}</div></td>
-                <td class="px-4 py-2">{{ $delivery->type->label() }}</td>
+                <td class="px-4 py-2">
+                    {{ $delivery->type->label() }}
+                    @if ($delivery->deadline_at)
+                        <div class="text-xs {{ $delivery->deadline_at->isPast() && ! $delivery->status->isFinal() ? 'text-red-700 font-semibold' : 'text-gray-500' }}">
+                            avant {{ $delivery->deadline_at->format('d/m H:i') }}
+                        </div>
+                    @endif
+                </td>
                 <td class="px-4 py-2 max-w-xs">
                     <div class="truncate"><span class="font-semibold text-green-700">A</span> {{ $delivery->pickup_address }}</div>
                     <div class="truncate"><span class="font-semibold text-red-700">B</span> {{ $delivery->dropoff_address }}</div>

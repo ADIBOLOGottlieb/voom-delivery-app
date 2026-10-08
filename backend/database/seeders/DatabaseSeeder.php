@@ -15,6 +15,8 @@ class DatabaseSeeder extends Seeder
     {
         // Catalogue marketplace : créé une seule fois, y compris en production.
         $this->call(ProductCatalogSeeder::class);
+        // Sous-catégories Agro + packs d'exemple : une seule fois.
+        $this->call(CatalogStructureSeeder::class);
 
         if (app()->isProduction() && ! env('ADMIN_PASSWORD')) {
             $this->command?->warn('ADMIN_PASSWORD non défini : compte admin non créé.');

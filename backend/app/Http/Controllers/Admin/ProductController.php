@@ -4,53 +4,68 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\Subcategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-/** Gestion de la marketplace (Shopping & Agroalimentaire). */
+/** Gestion de la marketplace (Shopping & Agroalimentaire) : produits et packs. */
 class ProductController extends Controller
 {
     public function index(Request $request): View
     {
         $category = $request->query('category');
+        $type = $request->query('type');
 
         $products = Product::query()
+            ->with('subcategory')
             ->when(array_key_exists((string) $category, Product::CATEGORIES), fn ($q) => $q->where('category', $category))
+            ->when(in_array($type, ['product', 'pack'], true), fn ($q) => $q->where('type', $type))
             ->latest()
-            ->paginate(25)
+            ->paginate(24)
             ->withQueryString();
 
-        return view('admin.products.index', compact('products', 'category'));
+        return view('admin.products.index', compact('products', 'category', 'type'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('admin.products.form', ['product' => new Product(['is_active' => true, 'category' => 'shopping'])]);
+        $isPack = $request->query('type') === 'pack';
+
+        return $this->form(new Product([
+            'is_active' => true,
+            'category' => $isPack ? 'agro' : 'shopping',
+            'type' => $isPack ? 'pack' : 'product',
+        ]));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validated($request);
+        [$data, $items] = $this->validated($request);
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
         }
 
-        Product::create($data);
+        DB::transaction(function () use ($data, $items) {
+            $product = Product::create($data);
+            $product->packItems()->sync($product->isPack() ? $items : []);
+        });
 
-        return redirect()->route('admin.products.index')->with('success', 'Produit ajouté.');
+        return redirect()->route('admin.products.index')->with('success', $data['type'] === 'pack' ? 'Pack créé.' : 'Produit ajouté.');
     }
 
     public function edit(Product $product): View
     {
-        return view('admin.products.form', compact('product'));
+        return $this->form($product->load('packItems'));
     }
 
     public function update(Request $request, Product $product): RedirectResponse
     {
-        $data = $this->validated($request);
+        [$data, $items] = $this->validated($request, $product);
         if ($request->hasFile('image')) {
             if ($product->image_path) {
                 Storage::disk('public')->delete($product->image_path);
@@ -58,9 +73,12 @@ class ProductController extends Controller
             $data['image_path'] = $request->file('image')->store('products', 'public');
         }
 
-        $product->update($data);
+        DB::transaction(function () use ($product, $data, $items) {
+            $product->update($data);
+            $product->packItems()->sync($product->isPack() ? $items : []);
+        });
 
-        return redirect()->route('admin.products.index')->with('success', 'Produit mis à jour.');
+        return redirect()->route('admin.products.index')->with('success', 'Enregistré.');
     }
 
     public function destroy(Product $product): RedirectResponse
@@ -69,7 +87,7 @@ class ProductController extends Controller
         if ($product->getConnection()->table('deliveries')->where('product_id', $product->id)->exists()) {
             $product->update(['is_active' => false]);
 
-            return back()->with('success', 'Produit déjà commandé : il a été désactivé au lieu d\'être supprimé.');
+            return back()->with('success', 'Déjà commandé : désactivé au lieu d\'être supprimé.');
         }
 
         if ($product->image_path) {
@@ -77,14 +95,26 @@ class ProductController extends Controller
         }
         $product->delete();
 
-        return back()->with('success', 'Produit supprimé.');
+        return back()->with('success', 'Supprimé.');
     }
 
-    /** @return array<string, mixed> */
-    private function validated(Request $request): array
+    private function form(Product $product): View
+    {
+        return view('admin.products.form', [
+            'product' => $product,
+            'subcategories' => Subcategory::orderBy('category')->orderBy('position')->get(),
+            'components' => Product::where('type', 'product')->where('is_active', true)
+                ->orderBy('category')->orderBy('name')->get(['id', 'name', 'price', 'unit', 'category']),
+        ]);
+    }
+
+    /** @return array{0: array<string, mixed>, 1: array<int, array{quantity: int}>} */
+    private function validated(Request $request, ?Product $product = null): array
     {
         $data = $request->validate([
+            'type' => ['required', Rule::in(['product', 'pack'])],
             'category' => ['required', Rule::in(array_keys(Product::CATEGORIES))],
+            'subcategory_id' => ['nullable', Rule::exists('subcategories', 'id')->where('category', $request->input('category'))],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'price' => ['required', 'integer', 'min:0'],
@@ -94,9 +124,22 @@ class ProductController extends Controller
             'pickup_lat' => ['required', 'numeric', 'between:-90,90'],
             'pickup_lng' => ['required', 'numeric', 'between:-180,180'],
             'image' => ['nullable', 'image', 'max:4096'],
+            'items' => ['nullable', 'array'],
+            'items.*' => ['nullable', 'integer', 'min:0', 'max:999'],
         ]);
-        unset($data['image']);
 
-        return [...$data, 'is_active' => $request->boolean('is_active')];
+        // Contenu du pack : produits dont la quantité saisie est > 0 (un pack ne peut pas se contenir).
+        $items = collect($data['items'] ?? [])
+            ->filter(fn ($qty, $id) => (int) $qty > 0 && (int) $id !== $product?->id)
+            ->mapWithKeys(fn ($qty, $id) => [(int) $id => ['quantity' => (int) $qty]])
+            ->all();
+
+        if ($data['type'] === 'pack' && $items === []) {
+            throw ValidationException::withMessages(['items' => 'Un pack doit contenir au moins un produit (quantité > 0).']);
+        }
+
+        unset($data['image'], $data['items']);
+
+        return [[...$data, 'is_active' => $request->boolean('is_active')], $items];
     }
 }

@@ -3,14 +3,18 @@
 @section('title', $product->exists ? 'Modifier le produit' : 'Nouveau produit')
 
 @section('content')
+    @php($isPack = old('type', $product->type) === 'pack')
     <a href="{{ route('admin.products.index') }}" class="text-gray-500">← Marketplace</a>
-    <h1 class="text-2xl font-bold mt-2 mb-4">{{ $product->exists ? 'Modifier '.$product->name : 'Nouveau produit' }}</h1>
+    <h1 class="text-2xl font-bold mt-2 mb-4">
+        {{ $product->exists ? 'Modifier '.$product->name : ($isPack ? 'Nouveau pack' : 'Nouveau produit') }}
+    </h1>
 
     <form method="POST" enctype="multipart/form-data"
           action="{{ $product->exists ? route('admin.products.update', $product) : route('admin.products.store') }}"
           class="bg-white rounded-lg shadow-sm p-6 max-w-2xl space-y-4">
         @csrf
         @if ($product->exists) @method('PUT') @endif
+        <input type="hidden" name="type" value="{{ $isPack ? 'pack' : 'product' }}">
 
         <div class="grid grid-cols-2 gap-4">
             <div>
@@ -18,6 +22,17 @@
                 <select name="category" class="w-full border rounded px-3 py-2">
                     @foreach (\App\Models\Product::CATEGORIES as $key => $label)
                         <option value="{{ $key }}" @selected(old('category', $product->category) === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Sous-catégorie (onglet)</label>
+                <select name="subcategory_id" class="w-full border rounded px-3 py-2">
+                    <option value="">— {{ $isPack ? 'Onglet « Packs »' : 'Aucune' }} —</option>
+                    @foreach ($subcategories as $sub)
+                        <option value="{{ $sub->id }}" @selected(old('subcategory_id', $product->subcategory_id) == $sub->id)>
+                            {{ \App\Models\Product::CATEGORIES[$sub->category] ?? $sub->category }} › {{ $sub->name }}
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -39,6 +54,24 @@
             <label class="block text-sm font-medium mb-1">Description</label>
             <textarea name="description" rows="3" class="w-full border rounded px-3 py-2">{{ old('description', $product->description) }}</textarea>
         </div>
+
+        @if ($isPack)
+            @php($current = $product->packItems->pluck('pivot.quantity', 'id'))
+            <fieldset class="border rounded p-4">
+                <legend class="px-1 text-sm font-semibold">Contenu du pack (quantité par produit, 0 = absent)</legend>
+                <div class="max-h-80 overflow-y-auto divide-y">
+                    @foreach ($components as $component)
+                        <label class="flex items-center gap-3 py-1.5 text-sm">
+                            <input type="number" min="0" max="999" name="items[{{ $component->id }}]"
+                                   value="{{ old('items.'.$component->id, $current[$component->id] ?? 0) }}" class="w-16 border rounded px-2 py-1">
+                            <span class="flex-1">{{ $component->name }}</span>
+                            <span class="text-gray-500">{{ number_format($component->price, 0, ',', ' ') }} F{{ $component->unit ? ' / '.$component->unit : '' }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Le prix du pack est celui saisi plus haut (il peut être inférieur à la somme des produits).</p>
+            </fieldset>
+        @endif
 
         <fieldset class="border rounded p-4 space-y-3">
             <legend class="px-1 text-sm font-semibold">Vendeur & point de récupération (point A)</legend>

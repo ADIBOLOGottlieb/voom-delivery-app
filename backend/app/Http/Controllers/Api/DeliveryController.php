@@ -63,6 +63,8 @@ class DeliveryController extends Controller
             'package_description' => ['nullable', 'string', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'scheduled_at' => ['nullable', 'required_if:type,programmee', 'date', 'after:now'],
+            // Heure limite de livraison choisie par le client (au moins 30 min pour laisser le temps au livreur).
+            'deadline_at' => ['nullable', 'date', 'after:'.now()->addMinutes(29)->toIso8601String()],
             ...$this->coordinateRules(pickupRequired: ! $request->filled('product_id')),
         ]);
 

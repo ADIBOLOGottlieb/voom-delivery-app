@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Controllers\Admin\SubcategoryController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CheckoutPageController;
@@ -48,6 +50,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/clients/{client}/toggle', [UserController::class, 'toggleClient'])->name('clients.toggle');
 
         Route::resource('products', ProductController::class)->except('show');
+
+        Route::get('/subcategories', [SubcategoryController::class, 'index'])->name('subcategories.index');
+        Route::post('/subcategories', [SubcategoryController::class, 'store'])->name('subcategories.store');
+        Route::put('/subcategories', [SubcategoryController::class, 'update'])->name('subcategories.update');
+        Route::delete('/subcategories/{subcategory}', [SubcategoryController::class, 'destroy'])->name('subcategories.destroy');
+
+        Route::resource('promotions', PromotionController::class)->except('show');
+        Route::post('/promotions/{promotion}/push', [PromotionController::class, 'push'])->name('promotions.push');
 
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');

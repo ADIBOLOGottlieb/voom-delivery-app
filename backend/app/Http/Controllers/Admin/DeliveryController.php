@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Delivery;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\DeliveryReminder;
 use App\Services\Payments\PaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -80,6 +81,7 @@ class DeliveryController extends Controller
         $data = $request->validate(['courier_id' => ['required', 'exists:users,id']]);
 
         $delivery->assignTo(User::findOrFail($data['courier_id']));
+        app(DeliveryReminder::class)->notifyAssigned($delivery->load('courier'));
 
         return back()->with('success', 'Livreur assigné.');
     }

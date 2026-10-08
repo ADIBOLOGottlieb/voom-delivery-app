@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\CourierDeliveryController;
+use App\Http\Controllers\Api\CronController;
 use App\Http\Controllers\Api\DeliveryController;
 use App\Http\Controllers\Api\PaymentWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -20,11 +21,18 @@ Route::prefix('v1')->group(function () {
         Route::post('/paygate', [PaymentWebhookController::class, 'paygate'])->name('webhooks.paygate');
     });
 
+    // Tâches périodiques (rappels livreurs), protégées par X-Cron-Key.
+    Route::post('/cron/run', CronController::class)->middleware('throttle:30,1');
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
 
+        Route::post('/me/device-token', [AuthController::class, 'deviceToken']);
+
         Route::get('/products', [CatalogController::class, 'products']);
+        Route::get('/subcategories', [CatalogController::class, 'subcategories']);
+        Route::get('/promotions', [CatalogController::class, 'promotions']);
         Route::get('/payment-info', [CatalogController::class, 'paymentInfo']);
 
         Route::middleware('role:client')->group(function () {

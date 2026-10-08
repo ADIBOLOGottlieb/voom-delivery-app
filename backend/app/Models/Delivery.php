@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
     'client_id', 'product_id', 'quantity', 'type',
     'pickup_address', 'pickup_lat', 'pickup_lng', 'pickup_contact_name', 'pickup_contact_phone',
     'dropoff_address', 'dropoff_lat', 'dropoff_lng', 'recipient_name', 'recipient_phone',
-    'package_description', 'notes', 'scheduled_at', 'distance_km', 'delivery_fee',
+    'package_description', 'notes', 'scheduled_at', 'deadline_at', 'distance_km', 'delivery_fee',
     'items_amount', 'total_amount',
 ])]
 class Delivery extends Model
@@ -60,6 +60,8 @@ class Delivery extends Model
             'total_amount' => 'integer',
             'quantity' => 'integer',
             'scheduled_at' => 'datetime',
+            'deadline_at' => 'datetime',
+            'last_reminder_at' => 'datetime',
             'assigned_at' => 'datetime',
             'picked_up_at' => 'datetime',
             'delivered_at' => 'datetime',

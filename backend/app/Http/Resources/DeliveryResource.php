@@ -43,6 +43,8 @@ class DeliveryResource extends JsonResource
             ] : null),
             'quantity' => $this->quantity,
             'scheduled_at' => $this->scheduled_at?->toIso8601String(),
+            'deadline_at' => $this->deadline_at?->toIso8601String(),
+            'is_urgent' => \App\Services\DeliveryReminder::isUrgent($this->resource),
 
             'distance_km' => $this->distance_km,
             'delivery_fee' => $this->delivery_fee,
