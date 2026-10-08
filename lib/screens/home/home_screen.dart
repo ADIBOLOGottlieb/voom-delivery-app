@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/delivery.dart';
+import '../../models/product.dart';
 import '../../services/auth_service.dart';
 import '../../services/delivery_service.dart';
 import '../../utils/colors.dart';
@@ -9,6 +10,9 @@ import 'delivery_detail_screen.dart';
 import 'main_screen.dart';
 import 'new_delivery_screen.dart';
 import 'plis_colis_screen.dart';
+import 'product_catalog_screen.dart';
+import '../../widgets/promo_carousel.dart';
+import '../../widgets/skeleton.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<int> onNavigate;
@@ -21,6 +25,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Future<List<Delivery>> _recent;
+  late Future<List<Promotion>> _promos;
 
   @override
   void initState() {
@@ -30,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _load() {
     _recent = context.read<DeliveryService>().myDeliveries();
+    _promos = context.read<DeliveryService>().promotions().catchError((_) => <Promotion>[]);
   }
 
   Future<void> _refresh() async {
@@ -96,6 +102,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
+              ),
+              // Annonces promo gérées par l'admin (bandeau défilant).
+              FutureBuilder<List<Promotion>>(
+                future: _promos,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Padding(padding: EdgeInsets.only(top: 20), child: Skeleton(height: 150, radius: 20));
+                  }
+                  final promos = snapshot.data ?? const <Promotion>[];
+                  if (promos.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: PromoCarousel(
+                      promotions: promos,
+                      onTap: (promo) {
+                        if (promo.product != null) showProductSheet(context, promo.product!);
+                      },
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 24),
               Text('Nos Services', style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),

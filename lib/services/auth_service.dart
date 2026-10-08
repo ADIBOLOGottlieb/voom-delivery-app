@@ -5,6 +5,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/user.dart';
 import 'api_client.dart';
+import 'delivery_service.dart';
+import 'push_service.dart';
 
 class AuthService extends ChangeNotifier {
   AuthService(this._api, {FlutterSecureStorage? storage}) : _storage = storage ?? const FlutterSecureStorage() {
@@ -35,6 +37,7 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         // Rafraîchit le profil en arrière-plan (rôle ou statut modifié par l'admin).
         _refreshProfile();
+        _registerPush();
       }
     } catch (e) {
       debugPrint('Session illisible, réinitialisation : $e');
@@ -81,6 +84,8 @@ class AuthService extends ChangeNotifier {
       final data = await _api.post(path, body) as Map<String, dynamic>;
       _api.token = data['token'] as String;
       _user = User.fromJson(data['user'] as Map<String, dynamic>);
+      _registerPush();
+      _user = User.fromJson(data['user'] as Map<String, dynamic>);
       await _storage.write(key: _tokenKey, value: _api.token);
       await _storage.write(key: _userKey, value: jsonEncode(_user!.toJson()));
     } finally {
@@ -89,7 +94,14 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Notifications : rappels (livreur) ou promos (client). Sans effet si Firebase est absent.
+  void _registerPush() {
+    final user = _user;
+    if (user != null) PushService.register(user, DeliveryService(_api));
+  }
+
   Future<void> logout() async {
+    await PushService.unregister();
     try {
       if (_api.token != null) await _api.post('/logout');
     } on ApiException catch (e) {

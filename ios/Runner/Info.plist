@@ -45,8 +45,6 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>GMSApiKey</key>
-	<string>$(MAPS_API_KEY)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Votre position sert à placer les points de récupération et de livraison sur la carte.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

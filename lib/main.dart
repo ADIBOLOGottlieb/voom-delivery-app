@@ -8,6 +8,7 @@ import 'screens/splash_screen.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/delivery_service.dart';
+import 'services/push_service.dart';
 import 'utils/theme.dart';
 
 Future<void> main() async {
@@ -16,6 +17,8 @@ Future<void> main() async {
   final api = ApiClient();
   // Réveille le serveur pendant l'écran de démarrage (l'hébergement gratuit se met en veille).
   unawaited(api.warmUp());
+  // Notifications push (ignorées si Firebase n'est pas configuré).
+  unawaited(PushService.init());
   runApp(VoomDeliveryApp(api: api));
 }
 

@@ -37,24 +37,39 @@ class _MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: screens),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _goTo,
-        backgroundColor: AppColors.secondary,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.surface,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Accueil'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_bag_outlined), activeIcon: Icon(Icons.shopping_bag), label: 'Shopping'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.agriculture_outlined), activeIcon: Icon(Icons.agriculture), label: 'Agro'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.local_shipping_outlined), activeIcon: Icon(Icons.local_shipping), label: 'Plis & Colis'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outlined), activeIcon: Icon(Icons.person), label: 'Profil'),
-        ],
+      // Barre Material 3 : fond noir, pastille jaune sur l'onglet actif.
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          backgroundColor: AppColors.secondary,
+          indicatorColor: AppColors.primary,
+          height: 68,
+          labelTextStyle: WidgetStateProperty.resolveWith(
+            (states) => TextStyle(
+              fontSize: 11.5,
+              fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
+              color: states.contains(WidgetState.selected) ? AppColors.primary : Colors.white70,
+            ),
+          ),
+          iconTheme: WidgetStateProperty.resolveWith(
+            (states) => IconThemeData(
+              color: states.contains(WidgetState.selected) ? AppColors.onPrimary : Colors.white70,
+            ),
+          ),
+        ),
+        child: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: _goTo,
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Accueil'),
+            NavigationDestination(
+                icon: Icon(Icons.shopping_bag_outlined), selectedIcon: Icon(Icons.shopping_bag), label: 'Shopping'),
+            NavigationDestination(
+                icon: Icon(Icons.agriculture_outlined), selectedIcon: Icon(Icons.agriculture), label: 'Agro'),
+            NavigationDestination(
+                icon: Icon(Icons.local_shipping_outlined), selectedIcon: Icon(Icons.local_shipping), label: 'Colis'),
+            NavigationDestination(icon: Icon(Icons.person_outlined), selectedIcon: Icon(Icons.person), label: 'Profil'),
+          ],
+        ),
       ),
     );
   }

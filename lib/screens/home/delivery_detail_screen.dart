@@ -139,6 +139,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                             children: [
                               if (d.packageDescription != null) _Row('Contenu', d.packageDescription!),
                               if (d.scheduledAt != null) _Row('Programmée', formatDateTime(d.scheduledAt!)),
+                              if (d.deadlineAt != null) _Row('À livrer avant', formatDateTime(d.deadlineAt!)),
                               _Row('Distance estimée', formatKm(d.distanceKm)),
                               _Row('Frais de livraison', formatFcfa(d.deliveryFee)),
                               if (d.itemsAmount > 0) _Row('Articles', formatFcfa(d.itemsAmount)),

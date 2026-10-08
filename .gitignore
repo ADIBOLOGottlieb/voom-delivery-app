@@ -78,3 +78,6 @@ secrets.json
 /android/gradlew
 /android/gradlew.bat
 /android/gradle/wrapper/gradle-wrapper.jar
+
+# Configuration Firebase (secret)
+/android/app/google-services.json

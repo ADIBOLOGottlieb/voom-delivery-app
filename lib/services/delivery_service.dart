@@ -75,13 +75,30 @@ class DeliveryService {
     );
   }
 
-  Future<List<Product>> products({required String category, String? search}) async => _list(
+  Future<List<Product>> products({required String category, int? subcategoryId, String? type, String? search}) async =>
+      _list(
         await _api.get('/products', query: {
           'category': category,
+          if (subcategoryId != null) 'subcategory_id': '$subcategoryId',
+          if (type != null) 'type': type,
           if (search != null && search.isNotEmpty) 'search': search,
         }),
         Product.fromJson,
       );
+
+  /// Onglets d'une catégorie (et présence de packs).
+  Future<(List<Subcategory>, bool)> subcategories(String category) async {
+    final data = await _api.get('/subcategories', query: {'category': category}) as Map<String, dynamic>;
+    return (
+      (data['data'] as List).map((e) => Subcategory.fromJson(e as Map<String, dynamic>)).toList(),
+      data['has_packs'] as bool? ?? false,
+    );
+  }
+
+  Future<List<Promotion>> promotions() async => _list(await _api.get('/promotions'), Promotion.fromJson);
+
+  /// Jeton Firebase de l'appareil (notifications push).
+  Future<void> registerDeviceToken(String token) async => _api.post('/me/device-token', {'token': token});
 
   // --- Livreur --------------------------------------------------------------
 

@@ -61,6 +61,12 @@ services:
         value: "true"
       - key: PAYGATE_AUTH_TOKEN
         sync: false
+      # Notifications push : JSON du compte de service Firebase encodé en base64 (gratuit, sans carte).
+      - key: FIREBASE_CREDENTIALS
+        sync: false
+      # Clé des rappels livreurs (même valeur que le secret GitHub CRON_SECRET).
+      - key: CRON_SECRET
+        generateValue: true
     # Le disque d'une instance « free » est éphémère : captures de paiement et photos produits
     # sont perdues à chaque redéploiement. En production, passer en plan payant et ajouter :
     # disk:

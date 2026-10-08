@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/delivery.dart';
@@ -11,6 +11,7 @@ import '../../utils/colors.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/delivery_type_tiles.dart';
+import '../../services/geocoding_service.dart';
 import '../common/location_picker_screen.dart';
 
 /// Formulaire de demande de livraison du point A (récupération) au point B (destination).
@@ -42,6 +43,7 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
   LatLng? _pickup;
   LatLng? _dropoff;
   DateTime? _scheduledAt;
+  DateTime? _deadline;
   DeliveryQuote? _quote;
   bool _quoting = false;
   bool _submitting = false;
@@ -76,7 +78,7 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
   }
 
   Future<void> _pick({required bool pickup}) async {
-    final result = await Navigator.of(context).push<LatLng>(
+    final result = await Navigator.of(context).push<Place>(
       MaterialPageRoute(
         builder: (_) => LocationPickerScreen(
           title: pickup ? 'Point A · Récupération' : 'Point B · Destination',
@@ -85,8 +87,45 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
       ),
     );
     if (result == null) return;
-    setState(() => pickup ? _pickup = result : _dropoff = result);
+    setState(() {
+      if (pickup) {
+        _pickup = result.point;
+        _pickupAddress.text = result.label;
+      } else {
+        _dropoff = result.point;
+        _dropoffAddress.text = result.label;
+      }
+    });
     _refreshQuote();
+  }
+
+  /// Heure limite à laquelle la livraison doit être faite (au moins 30 min plus tard).
+  Future<void> _pickDeadline() async {
+    final now = DateTime.now();
+    final initial = _deadline ?? now.add(const Duration(hours: 2));
+    final date = await showDatePicker(
+      context: context,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 30)),
+      initialDate: initial,
+      helpText: 'Livrer au plus tard le',
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+      helpText: 'Avant quelle heure ?',
+    );
+    if (time == null || !mounted) return;
+    final chosen = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    if (chosen.isBefore(now.add(const Duration(minutes: 30)))) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Choisissez une heure au moins 30 minutes plus tard."),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
+    setState(() => _deadline = chosen);
   }
 
   Future<void> _refreshQuote() async {
@@ -159,6 +198,7 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
       'package_description': orNull(_description),
       'notes': orNull(_notes),
       if (_scheduledAt != null) 'scheduled_at': _scheduledAt!.toUtc().toIso8601String(),
+      if (_deadline != null) 'deadline_at': _deadline!.toUtc().toIso8601String(),
     };
 
     setState(() => _submitting = true);
@@ -218,6 +258,31 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
                 label: Text(_scheduledAt == null ? 'Choisir date et heure' : formatDateTime(_scheduledAt!)),
               ),
             ],
+            const SizedBox(height: 12),
+            // Heure limite de livraison (visible par le livreur, avec rappels si elle approche).
+            Material(
+              color: _deadline == null ? AppColors.surface : AppColors.primary.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(14),
+              child: ListTile(
+                onTap: _pickDeadline,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                leading: const Icon(Icons.alarm, color: AppColors.secondary),
+                title: Text(
+                  _deadline == null ? 'Heure limite de livraison' : 'À livrer avant ${formatDateTime(_deadline!)}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(_deadline == null
+                    ? 'Facultatif · le livreur sera alerté si elle approche'
+                    : 'Touchez pour modifier'),
+                trailing: _deadline == null
+                    ? const Icon(Icons.chevron_right)
+                    : IconButton(
+                        tooltip: "Retirer l'heure limite",
+                        icon: const Icon(Icons.close),
+                        onPressed: () => setState(() => _deadline = null),
+                      ),
+              ),
+            ),
             const SizedBox(height: 20),
             if (!_isOrder) ...[
               const _SectionTitle(letter: 'A', color: AppColors.success, title: 'Récupération du colis'),

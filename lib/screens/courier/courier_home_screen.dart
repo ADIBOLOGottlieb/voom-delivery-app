@@ -6,6 +6,7 @@ import '../../services/auth_service.dart';
 import '../../services/delivery_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/deadline_chip.dart';
 import '../../widgets/status_chip.dart';
 import '../../widgets/voom_logo.dart';
 import '../home/profile_screen.dart';
@@ -156,6 +157,13 @@ class _CourierCard extends StatelessWidget {
     final nextIsPickup = d.status == DeliveryStatus.assigned;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      // Livraison urgente (Express ou heure limite proche) : liseré rouge.
+      shape: d.isUrgent && d.isActive
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: AppColors.error, width: 2),
+            )
+          : null,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -171,6 +179,10 @@ class _CourierCard extends StatelessWidget {
                 const Spacer(),
                 StatusChip.delivery(d),
               ]),
+              if (d.deadlineAt != null) ...[
+                const SizedBox(height: 8),
+                DeadlineChip(deadline: d.deadlineAt!, done: !d.isActive),
+              ],
               const SizedBox(height: 12),
               _Line(
                 icon: Icons.store,

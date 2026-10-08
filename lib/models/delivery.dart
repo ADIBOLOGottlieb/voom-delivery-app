@@ -1,4 +1,4 @@
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 
 /// Types de livraison proposés (valeurs identiques au backend).
 enum DeliveryType {
@@ -116,6 +116,12 @@ class Delivery {
   final String? packageDescription;
   final String? notes;
   final DateTime? scheduledAt;
+
+  /// Heure limite de livraison choisie par le client.
+  final DateTime? deadlineAt;
+
+  /// Express ou heure limite proche : mise en avant pour le livreur.
+  final bool isUrgent;
   final double distanceKm;
   final int deliveryFee;
   final int itemsAmount;
@@ -142,6 +148,8 @@ class Delivery {
     this.packageDescription,
     this.notes,
     this.scheduledAt,
+    this.deadlineAt,
+    this.isUrgent = false,
     required this.distanceKm,
     required this.deliveryFee,
     required this.itemsAmount,
@@ -173,6 +181,8 @@ class Delivery {
         packageDescription: json['package_description'] as String?,
         notes: json['notes'] as String?,
         scheduledAt: _date(json['scheduled_at']),
+        deadlineAt: _date(json['deadline_at']),
+        isUrgent: json['is_urgent'] as bool? ?? false,
         distanceKm: (json['distance_km'] as num).toDouble(),
         deliveryFee: json['delivery_fee'] as int,
         itemsAmount: json['items_amount'] as int? ?? 0,

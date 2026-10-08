@@ -1,6 +1,6 @@
 # VOOM Delivery
 
-Application de livraison à Lomé (Togo) : le client demande une livraison d'un **point A** (récupération du colis) à un **point B** (destination), paie par **Flooz** ou **Mixx by Yas** sur le compte marchand de l'agence et envoie la **capture d'écran** de la transaction. L'agence vérifie le paiement et assigne un **livreur**, qui suit la course sur **Google Maps**.
+Application de livraison à Lomé (Togo) : le client demande une livraison d'un **point A** (récupération du colis) à un **point B** (destination), paie par **Flooz** ou **Mixx by Yas** sur le compte marchand de l'agence et envoie la **capture d'écran** de la transaction. L'agence vérifie le paiement et assigne un **livreur**, qui suit la course sur la carte et ouvre l'itinéraire dans Google Maps.
 
 Le dépôt contient :
 
@@ -75,6 +75,27 @@ Couleurs VOOM : jaune `#FFD700`, noir `#000000`, blanc. Le logo (moto stylisée 
 
 Pour utiliser le fichier officiel de l'agence : remplacer ces fichiers (mêmes noms), puis régénérer les icônes avec `dart run flutter_launcher_icons`.
 
+## Marketplace, packs et promos (panneau admin)
+
+- **Sous-catégories** (*Marketplace › Sous-catégories*) : 6 onglets Agro créés au départ (Céréales & légumineuses, Légumes, Tubercules, Fruits, Œufs-volaille-poisson, Huiles & transformés), renommables, réordonnables ; affichés en **onglets verticaux** dans l'app.
+- **Packs** (*Marketplace › + Nouveau pack*) : plusieurs produits + quantités, un prix ; affichés avec le badge PACK et leur contenu.
+- **Promos** (*Promos*) : titre, message, image, produit lié, dates ; affichées en **bandeau défilant** sur l'accueil et envoyées en **notification push** à tous les clients (case à cocher ou bouton « Envoyer la notification »).
+- **Heure limite** : le client indique « à livrer avant » ; affichée au livreur avec compte à rebours et dans l'admin (« EN RETARD » si dépassée).
+
+## Notifications push (Firebase, gratuit sans carte bancaire)
+
+Rappels aux livreurs (nouvelle course, livraison Express, heure limite proche ou dépassée — toutes les 10 min) et promos aux clients.
+
+1. https://console.firebase.google.com › **Créer un projet** (plan Spark gratuit, aucune carte demandée).
+2. **Ajouter une application Android**, nom de paquet `com.voomdelivery.app` › télécharger `google-services.json`.
+3. GitHub › Settings › Secrets › Actions :
+   - `GOOGLE_SERVICES_JSON` = contenu de `google-services.json` encodé en base64 (`base64 -w0 google-services.json`) ;
+   - `CRON_SECRET` = la valeur générée par Render pour `CRON_SECRET` (service › Environment).
+4. Firebase › Paramètres du projet › **Comptes de service** › « Générer une nouvelle clé privée » › encoder le JSON en base64 et le coller dans Render › `FIREBASE_CREDENTIALS`.
+5. Relancer le build de l'APK (Actions › Build APK › Run workflow).
+
+Sans ces réglages, l'application fonctionne normalement, sans notifications.
+
 ## Démarrage en local
 
 ### 1. Backend
@@ -99,12 +120,9 @@ php artisan serve --host=0.0.0.0 --port=8000
 
 Prérequis : Flutter 3.35+ ; sous Windows, activer le **Mode développeur** (requis pour les plugins).
 
-1. Créer une clé **Google Maps** (Maps SDK for Android / iOS) dans Google Cloud Console.
-2. Android : ajouter dans `android/local.properties` (non versionné) :
-   ```
-   MAPS_API_KEY=VOTRE_CLE
-   ```
-   iOS : définir la variable de build `MAPS_API_KEY` dans Xcode (utilisée par `Info.plist › GMSApiKey`).
+1. Cartes : **OpenStreetMap** (`flutter_map`) et adresses via **Nominatim** — gratuits, sans clé ni carte bancaire.
+   L'itinéraire du livreur ouvre l'application Google Maps du téléphone par un simple lien (gratuit, sans clé).
+2. Notifications push (facultatif) : voir « Notifications push » ci-dessus.
 3. Lancer :
    ```bash
    flutter pub get

@@ -42,10 +42,17 @@ jobs:
           flutter analyze
           flutter test
 
-      - name: Clé Google Maps (secret MAPS_API_KEY, optionnel)
+      # Notifications push : contenu de google-services.json encodé en base64 (secret facultatif).
+      - name: Configuration Firebase (secret GOOGLE_SERVICES_JSON, optionnel)
         env:
-          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
-        run: echo "MAPS_API_KEY=${MAPS_API_KEY}" >> android/local.properties
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            echo "Firebase configuré."
+          else
+            echo "Pas de google-services.json : notifications push désactivées dans cet APK."
+          fi
 
       - name: Build APK release
         run: flutter build apk --release --build-number=${{ github.run_number }}

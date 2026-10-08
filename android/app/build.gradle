@@ -5,6 +5,12 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+// Notifications push : Firebase n'est activé que si android/app/google-services.json est présent
+// (fichier téléchargé depuis la console Firebase, non versionné ; fourni en secret dans la CI).
+if (file("google-services.json").exists()) {
+    apply plugin: "com.google.gms.google-services"
+}
+
 android {
     namespace = "com.example.voom_delivery_app"
     compileSdk = flutter.compileSdkVersion
@@ -13,6 +19,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Requis par flutter_local_notifications.
+        coreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -20,23 +28,12 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.voom_delivery_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // Identifiant de l'application (Play Store, Firebase).
+        applicationId = "com.voomdelivery.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-
-        // Clé Google Maps lue depuis android/local.properties (non versionné) : MAPS_API_KEY=xxx
-        def localProps = new Properties()
-        def localPropsFile = rootProject.file("local.properties")
-        if (localPropsFile.exists()) {
-            localPropsFile.withReader("UTF-8") { localProps.load(it) }
-        }
-        // « += » : ne pas écraser les placeholders injectés par Flutter (applicationName…).
-        manifestPlaceholders += [MAPS_API_KEY: localProps.getProperty("MAPS_API_KEY", "")]
     }
 
     buildTypes {
@@ -46,6 +43,10 @@ android {
             signingConfig = signingConfigs.debug
         }
     }
+}
+
+dependencies {
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
 }
 
 flutter {

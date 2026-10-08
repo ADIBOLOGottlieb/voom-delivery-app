@@ -9,6 +9,7 @@ import '../../utils/formatters.dart';
 import '../../utils/launchers.dart';
 import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/delivery_map.dart';
+import '../../widgets/deadline_chip.dart';
 import '../../widgets/status_chip.dart';
 
 /// Détail d'une livraison pour le livreur : carte A/B, itinéraires Google Maps, contacts, étapes.
@@ -101,6 +102,7 @@ class _CourierDeliveryScreenState extends State<CourierDeliveryScreen> {
                     StatusChip.delivery(d),
                     StatusChip(label: d.type.label, color: AppColors.secondary),
                     StatusChip(label: formatKm(d.distanceKm), color: AppColors.info),
+                    if (d.deadlineAt != null) DeadlineChip(deadline: d.deadlineAt!, done: !d.isActive),
                   ]),
                   const SizedBox(height: 12),
                   DeliveryMap(pickup: d.pickup, dropoff: d.dropoff, height: 280),
