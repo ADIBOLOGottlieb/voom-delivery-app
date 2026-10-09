@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-/// Logo VOOM Delivery (moto stylisée formant « VOOM », jaune / noir / blanc).
+/// Logo officiel VOOM (moto stylisée en épingle de localisation).
 ///
-/// Pour utiliser le fichier officiel, remplacer `assets/images/voom_logo.svg`.
+/// - [VoomLogo] : version horizontale, pour fonds clairs ;
+/// - [VoomLogo.stacked] : moto au-dessus du mot VOOM (écrans d'accueil) ;
+/// - [VoomLogo.light] : texte blanc, pour fonds noirs.
 class VoomLogo extends StatelessWidget {
   final double width;
+  final String asset;
 
-  const VoomLogo({super.key, this.width = 220});
+  const VoomLogo({super.key, this.width = 220}) : asset = 'assets/images/voom_logo.png';
 
-  static const asset = 'assets/images/voom_logo.svg';
+  const VoomLogo.stacked({super.key, this.width = 220}) : asset = 'assets/images/voom_logo_stacked.png';
 
-  /// Proportions du logo (viewBox 420 × 150).
-  static const aspectRatio = 420 / 150;
+  const VoomLogo.light({super.key, this.width = 220}) : asset = 'assets/images/voom_logo_light.png';
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      asset,
-      width: width,
-      height: width / aspectRatio,
-      semanticsLabel: 'VOOM Delivery',
+    return Semantics(
+      label: 'VOOM Delivery',
+      image: true,
+      child: Image.asset(asset, width: width, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
     );
   }
 }

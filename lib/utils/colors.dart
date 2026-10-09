@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Palette de couleurs VOOM Delivery
-  static const Color primary = Color(0xFFFFD700); // Jaune vif
-  static const Color primaryDark = Color(0xFFFFB300); // Jaune plus foncé
+  static const Color primary = Color(0xFFFAC223); // Jaune officiel VOOM (logo)
+  static const Color primaryDark = Color(0xFFE0A800); // Jaune plus foncé
   static const Color secondary = Color(0xFF000000); // Noir
   static const Color background = Color(0xFFFFFFFF); // Blanc
   static const Color surface = Color(0xFFF5F5F5); // Gris très clair

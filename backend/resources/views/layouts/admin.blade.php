@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Administration') · VOOM Delivery</title>
-    <link rel="icon" type="image/svg+xml" href="{{ asset('images/voom-icon.svg') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/voom-icon.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { theme: { extend: { colors: { voom: { DEFAULT: '#FFD700', dark: '#FFB300' } } } } };
+        tailwind.config = { theme: { extend: { colors: { voom: { DEFAULT: '#FAC223', dark: '#E0A800' } } } } };
     </script>
 </head>
 <body class="bg-gray-100 text-gray-900 min-h-screen">
@@ -26,7 +26,7 @@
     <header class="bg-black text-white">
         <div class="max-w-7xl mx-auto px-4 flex flex-wrap items-center gap-x-6 gap-y-2 py-3">
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
-                <img src="{{ asset('images/voom-logo.svg') }}" alt="VOOM Delivery" class="h-10">
+                <img src="{{ asset('images/voom-logo-light.png') }}" alt="VOOM Delivery" class="h-10">
                 <span class="font-light text-white text-lg">Admin</span>
             </a>
             <nav class="flex flex-wrap gap-1 text-sm flex-1">

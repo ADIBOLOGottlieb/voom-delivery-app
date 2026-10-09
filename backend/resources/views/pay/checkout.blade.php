@@ -4,11 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Paiement · VOOM Delivery</title>
-    <link rel="icon" type="image/svg+xml" href="{{ asset('images/voom-icon.svg') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/voom-icon.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center px-4 py-8">
-    <img src="{{ asset('images/voom-logo.svg') }}" alt="VOOM Delivery" class="w-56 mb-6">
+    <img src="{{ asset('images/voom-logo.png') }}" alt="VOOM Delivery" class="w-56 mb-6">
 
     <div class="bg-white rounded-2xl shadow w-full max-w-sm p-6 text-center">
         <p class="text-gray-500 text-sm">Livraison {{ $payment->delivery->reference }}</p>

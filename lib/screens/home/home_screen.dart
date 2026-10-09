@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     return const Padding(padding: EdgeInsets.only(top: 20), child: Skeleton(height: 150, radius: 20));
                   }
                   final promos = snapshot.data ?? const <Promotion>[];
-                  if (promos.isEmpty) return const SizedBox.shrink();
+                  if (promos.isEmpty) return const _BrandBanner();
                   return Padding(
                     padding: const EdgeInsets.only(top: 20),
                     child: PromoCarousel(
@@ -217,6 +217,54 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   );
                 },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bannière de marque affichée quand aucune promo n'est publiée.
+class _BrandBanner extends StatelessWidget {
+  const _BrandBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: SizedBox(
+          height: 150,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset('assets/images/photo_courier.jpg', fit: BoxFit.cover, alignment: const Alignment(0, -0.5)),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xE6000000), Color(0x00000000)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Livré vite,\npartout à Lomé',
+                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, height: 1.15),
+                    ),
+                    SizedBox(height: 6),
+                    Text('Colis, courses et produits frais', style: TextStyle(color: AppColors.primary, fontSize: 13)),
+                  ],
+                ),
               ),
             ],
           ),

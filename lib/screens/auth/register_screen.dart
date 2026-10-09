@@ -70,7 +70,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: VoomLogo(width: 180)),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset('assets/images/photo_courier_bags.jpg',
+                      height: 150, fit: BoxFit.cover, alignment: const Alignment(0, -0.2)),
+                ),
+                const SizedBox(height: 16),
+                const Center(child: VoomLogo(width: 160)),
                 const SizedBox(height: 20),
                 Text('Créer un compte client', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 8),

@@ -62,7 +62,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   Center(
                     child: Column(
                       children: [
-                        const VoomLogo(width: 240),
+                        // Photo de marque (livreur VOOM) puis logo officiel.
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.asset('assets/images/photo_courier.jpg',
+                              height: 180,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              alignment: const Alignment(0, -0.4)),
+                        ),
+                        const SizedBox(height: 20),
+                        const VoomLogo(width: 200),
                         const SizedBox(height: 20),
                         Text('Connectez-vous à votre compte', style: Theme.of(context).textTheme.bodyMedium),
                       ],

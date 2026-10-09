@@ -28,7 +28,7 @@ class CourierHomeScreen extends StatelessWidget {
           leadingWidth: 104,
           leading: const Padding(
             padding: EdgeInsets.only(left: 12),
-            child: Center(child: VoomLogo(width: 92)),
+            child: Center(child: VoomLogo.light(width: 92)),
           ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
