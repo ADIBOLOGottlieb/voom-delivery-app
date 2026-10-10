@@ -7,8 +7,10 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:voom_delivery_app/main.dart';
+import 'package:voom_delivery_app/models/chat.dart';
 import 'package:voom_delivery_app/models/delivery.dart';
 import 'package:voom_delivery_app/models/product.dart';
+import 'package:voom_delivery_app/models/user.dart';
 import 'package:voom_delivery_app/services/api_client.dart';
 import 'package:voom_delivery_app/widgets/voom_logo.dart';
 
@@ -121,5 +123,75 @@ void main() {
     expect(d.dropoff.contactPhone, '+22893');
     expect(d.courier?.name, 'Kossi');
     expect(d.isActive, isTrue);
+    expect(d.photos, isEmpty);
+    expect(d.requestId, isNull);
+  });
+
+  test('Delivery.fromJson lit les photos des articles et la discussion liée', () {
+    final d = Delivery.fromJson({
+      ..._deliveryJson(),
+      'photos': ['https://api/media/a', 'https://api/media/b'],
+      'request_id': 12,
+    });
+
+    expect(d.photos, hasLength(2));
+    expect(d.requestId, 12);
+  });
+
+  test('User.fromJson lit la photo de profil et le statut client habitué', () {
+    final user = User.fromJson({
+      'id': 3,
+      'name': 'Ama Mensah',
+      'email': null,
+      'phone_number': '+22890000000',
+      'role': 'client',
+      'vehicle': null,
+      'avatar_url': 'https://api/media/x',
+      'is_regular': true,
+    });
+
+    expect(user.avatarUrl, 'https://api/media/x');
+    expect(user.isRegular, isTrue);
+    expect(user.firstName, 'Ama');
+    expect(user.roleLabel, 'Client fidèle');
+    // Session enregistrée puis relue : les nouveaux champs survivent.
+    expect(User.fromJson(user.toJson()).avatarUrl, user.avatarUrl);
+  });
+
+  test('ChatRequest.fromJson lit messages, non-lus et livraison programmée', () {
+    final r = ChatRequest.fromJson({
+      'id': 5,
+      'reference': 'DR-0005',
+      'status': 'scheduled',
+      'status_label': 'Livraison programmée',
+      'unread': 2,
+      'messages': [
+        {
+          'id': 1, 'from': 'client', 'body': null, 'photo_url': 'https://api/media/p', 'lat': null, 'lng': null,
+          'created_at': '2026-10-10T09:00:00+00:00',
+        },
+        {
+          'id': 2, 'from': 'client', 'body': 'Agoè', 'photo_url': null, 'lat': 6.2, 'lng': 1.2,
+          'created_at': '2026-10-10T09:01:00+00:00',
+        },
+        {
+          'id': 3, 'from': 'agency', 'body': 'Ok', 'photo_url': null, 'lat': null, 'lng': null,
+          'created_at': '2026-10-10T09:02:00+00:00',
+        },
+      ],
+      'delivery': {
+        'id': 9, 'reference': 'VD-XYZ123', 'status_label': 'En attente', 'payment_status': 'unpaid',
+        'total_amount': 1500, 'can_pay': true,
+      },
+      'last_message_at': '2026-10-10T09:02:00+00:00',
+    });
+
+    expect(r.unread, 2);
+    expect(r.messages.first.preview, '📷 Photo');
+    expect(r.messages[1].hasLocation, isTrue);
+    expect(r.messages[1].isMine, isTrue);
+    expect(r.messages.last.isMine, isFalse);
+    expect(r.delivery?.canPay, isTrue);
+    expect(r.delivery?.totalAmount, 1500);
   });
 }

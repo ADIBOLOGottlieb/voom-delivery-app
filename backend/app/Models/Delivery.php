@@ -8,6 +8,7 @@ use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
@@ -92,6 +93,24 @@ class Delivery extends Model
     public function latestPayment(): HasOne
     {
         return $this->hasOne(Payment::class)->latestOfMany();
+    }
+
+    /** Photos des articles envoyées par le client (formulaire ou demande rapide). */
+    public function photos(): BelongsToMany
+    {
+        return $this->belongsToMany(Media::class, 'delivery_photos')->withTimestamps()->orderBy('delivery_photos.id');
+    }
+
+    /** Demande rapide (chat) à l'origine de cette livraison. */
+    public function deliveryRequest(): HasOne
+    {
+        return $this->hasOne(DeliveryRequest::class);
+    }
+
+    /** Le client peut encore ajouter des photos tant que le colis n'est pas récupéré. */
+    public function acceptsPhotos(): bool
+    {
+        return in_array($this->status, [DeliveryStatus::Pending, DeliveryStatus::Assigned], true);
     }
 
     // --- Règles métier -------------------------------------------------------

@@ -58,17 +58,29 @@ class ApiClient {
         ),
       );
 
+  Future<dynamic> delete(String path) => _send(() => _http.delete(_uri(path), headers: _headers));
+
   Future<dynamic> postMultipart(
     String path, {
     required Map<String, String> fields,
     required String fileField,
     required String filePath,
+  }) =>
+      postFiles(path, fields: fields, files: [(fileField, filePath)]);
+
+  /// Formulaire multipart avec plusieurs fichiers : [(champ, chemin), …] (ex. ('photos[]', '/…/a.jpg')).
+  Future<dynamic> postFiles(
+    String path, {
+    Map<String, String> fields = const {},
+    List<(String, String)> files = const [],
   }) {
     return _send(() async {
       final request = http.MultipartRequest('POST', _uri(path))
         ..headers.addAll(_headers)
-        ..fields.addAll(fields)
-        ..files.add(await http.MultipartFile.fromPath(fileField, filePath));
+        ..fields.addAll(fields);
+      for (final (field, filePath) in files) {
+        request.files.add(await http.MultipartFile.fromPath(field, filePath));
+      }
       return http.Response.fromStream(await _http.send(request));
     });
   }

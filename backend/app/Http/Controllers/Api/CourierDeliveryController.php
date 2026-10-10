@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
 /** Livraisons assignées au livreur connecté. */
 class CourierDeliveryController extends Controller
 {
-    private const RELATIONS = ['client', 'product'];
+    private const RELATIONS = ['client', 'product', 'photos'];
 
     /** ?scope=active (par défaut : assignées / récupérées) ou ?scope=history (terminées). */
     public function index(Request $request): AnonymousResourceCollection

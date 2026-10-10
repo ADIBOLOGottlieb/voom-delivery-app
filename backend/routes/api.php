@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\CourierDeliveryController;
 use App\Http\Controllers\Api\CronController;
 use App\Http\Controllers\Api\DeliveryController;
 use App\Http\Controllers\Api\PaymentWebhookController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\RequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -29,6 +31,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
 
         Route::post('/me/device-token', [AuthController::class, 'deviceToken']);
+        Route::post('/me/avatar', [ProfileController::class, 'updateAvatar'])->middleware('throttle:20,1');
+        Route::delete('/me/avatar', [ProfileController::class, 'deleteAvatar']);
 
         Route::get('/products', [CatalogController::class, 'products']);
         Route::get('/subcategories', [CatalogController::class, 'subcategories']);
@@ -42,6 +46,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show']);
             Route::post('/deliveries/{delivery}/cancel', [DeliveryController::class, 'cancel']);
             Route::post('/deliveries/{delivery}/payment', [DeliveryController::class, 'submitPayment']);
+            Route::post('/deliveries/{delivery}/photos', [DeliveryController::class, 'addPhoto'])->middleware('throttle:30,1');
+
+            // Demandes rapides (clients habitués) : photos + chat avec l'agence.
+            Route::get('/requests', [RequestController::class, 'index']);
+            Route::post('/requests', [RequestController::class, 'store'])->middleware('throttle:10,1');
+            Route::get('/requests/{deliveryRequest}', [RequestController::class, 'show']);
+            Route::post('/requests/{deliveryRequest}/messages', [RequestController::class, 'message'])->middleware('throttle:60,1');
             Route::post('/deliveries/{delivery}/checkout', [CheckoutController::class, 'store'])->middleware('throttle:10,1');
             Route::get('/deliveries/{delivery}/payments/{payment}', [CheckoutController::class, 'show']);
         });

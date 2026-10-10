@@ -42,6 +42,8 @@ class DeliveryResource extends JsonResource
                 'name' => $this->product->name,
             ] : null),
             'quantity' => $this->quantity,
+            'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(fn ($m) => $m->url())->values()),
+            'request_id' => $this->whenLoaded('deliveryRequest', fn () => $this->deliveryRequest?->id),
             'scheduled_at' => $this->scheduled_at?->toIso8601String(),
             'deadline_at' => $this->deadline_at?->toIso8601String(),
             'is_urgent' => \App\Services\DeliveryReminder::isUrgent($this->resource),

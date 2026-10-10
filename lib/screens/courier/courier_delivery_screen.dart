@@ -10,6 +10,7 @@ import '../../utils/launchers.dart';
 import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/delivery_map.dart';
 import '../../widgets/deadline_chip.dart';
+import '../../widgets/photos.dart';
 import '../../widgets/status_chip.dart';
 
 /// Détail d'une livraison pour le livreur : carte A/B, itinéraires Google Maps, contacts, étapes.
@@ -132,6 +133,11 @@ class _CourierDeliveryScreenState extends State<CourierDeliveryScreen> {
                           Text('Colis', style: Theme.of(context).textTheme.titleMedium),
                           const SizedBox(height: 6),
                           Text(d.packageDescription ?? 'Pas de description'),
+                          // Photos des articles envoyées par le client : pour reconnaître le colis.
+                          if (d.photos.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            PhotoStrip(urls: d.photos, size: 76),
+                          ],
                           if (d.notes != null) ...[
                             const SizedBox(height: 10),
                             Text('Instructions', style: Theme.of(context).textTheme.titleMedium),

@@ -72,6 +72,26 @@
                 </dl>
             </section>
 
+            @if ($delivery->photos->isNotEmpty() || $delivery->deliveryRequest)
+                <section class="bg-white rounded-lg shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="font-semibold">Photos des articles</h2>
+                        @if ($delivery->deliveryRequest)
+                            <a href="{{ route('admin.requests.show', $delivery->deliveryRequest) }}" class="text-sm text-blue-600 underline">Voir la discussion</a>
+                        @endif
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        @forelse ($delivery->photos as $photo)
+                            <a href="{{ $photo->url() }}" target="_blank">
+                                <img src="{{ $photo->url() }}" alt="Article" class="w-28 h-28 object-cover rounded-lg border">
+                            </a>
+                        @empty
+                            <p class="text-sm text-gray-500">Aucune photo.</p>
+                        @endforelse
+                    </div>
+                </section>
+            @endif
+
             {{-- Paiements --}}
             <section class="bg-white rounded-lg shadow-sm p-5">
                 <h2 class="font-semibold mb-3">Paiements</h2>

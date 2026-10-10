@@ -8,6 +8,7 @@ use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\DeliveryResource;
 use App\Models\Delivery;
+use App\Models\Media;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Services\PricingService;
@@ -21,7 +22,9 @@ use Illuminate\Validation\ValidationException;
 /** Demandes de livraison côté client. */
 class DeliveryController extends Controller
 {
-    private const RELATIONS = ['courier', 'client', 'product', 'latestPayment'];
+    private const RELATIONS = ['courier', 'client', 'product', 'latestPayment', 'photos', 'deliveryRequest'];
+
+    private const MAX_PHOTOS = 6;
 
     public function __construct(private readonly PricingService $pricing) {}
 
@@ -159,6 +162,25 @@ class DeliveryController extends Controller
         });
 
         return new DeliveryResource($delivery->refresh()->load(self::RELATIONS));
+    }
+
+    /** Photo d'un article à livrer (aide le livreur à reconnaître le colis). */
+    public function addPhoto(Request $request, Delivery $delivery): DeliveryResource
+    {
+        $this->authorizeOwner($request, $delivery);
+
+        $request->validate(['photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120']]);
+
+        if (! $delivery->acceptsPhotos()) {
+            throw ValidationException::withMessages(['photo' => 'Le colis a déjà été récupéré.']);
+        }
+        if ($delivery->photos()->count() >= self::MAX_PHOTOS) {
+            throw ValidationException::withMessages(['photo' => 'Maximum '.self::MAX_PHOTOS.' photos par livraison.']);
+        }
+
+        $delivery->photos()->attach(Media::fromUpload($request->file('photo')));
+
+        return new DeliveryResource($delivery->load(self::RELATIONS));
     }
 
     private function authorizeOwner(Request $request, Delivery $delivery): void

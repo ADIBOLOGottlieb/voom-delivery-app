@@ -28,7 +28,11 @@ Client                         Admin (web /admin)                 Livreur
 ```
 
 - **Rôles** : `client` (inscription libre dans l'app), `livreur` (compte créé par l'admin uniquement), `admin` (panneau web).
-- **Marketplace** (Shopping, Agroalimentaire) : produits gérés par l'admin. Une commande crée une livraison dont le point A est l'adresse du vendeur ; le total = articles + frais de livraison.
+- **Deux façons de commander** (bouton central « Livrer » de l'app) :
+  - *nouveau client* : formulaire guidé (A et B sur la carte, type, heure limite) + photos des articles (6 max) ;
+  - *client habitué* (au moins une livraison effectuée, ou marqué « Habitué » dans *Admin › Clients*) : **envoi rapide** — il envoie seulement les photos de ses articles et un message ; l'agence discute avec lui dans *Admin › Demandes* (texte, photos, positions partagées) puis **programme la livraison** (A/B sur une carte OpenStreetMap, prix auto ou convenu). Le client reçoit une notification et paie depuis la discussion. Les photos accompagnent la livraison jusqu'au livreur.
+- **Photo de profil** : client et livreur l'ajoutent / la changent depuis l'onglet Profil. Les photos (profil, articles, chat) sont stockées en base de données, elles survivent donc aux redémarrages de Render (disque éphémère).
+- **Marketplace** (Agroalimentaire dans l'app) : produits gérés par l'admin. Une commande crée une livraison dont le point A est l'adresse du vendeur ; le total = articles + frais de livraison.
 - **Tarif** : forfait + distance estimée × prix/km (+ supplément Express), minimum configurable, arrondi à 50 F. Réglable dans *Admin › Réglages*.
 - **Paiement** : Flooz et Mixx by Yas via un agrégateur (voir ci-dessous), confirmé automatiquement. Un livreur ne peut être assigné qu'après confirmation du paiement.
 
@@ -158,6 +162,11 @@ Tests : `flutter test` · analyse : `flutter analyze`.
 | GET | `/deliveries/{id}` | client | Détail |
 | POST | `/deliveries/{id}/payment` | client | Preuve de paiement (multipart, `screenshot`) |
 | POST | `/deliveries/{id}/cancel` | client | Annulation (avant confirmation du paiement) |
+| POST | `/deliveries/{id}/photos` | client | Photo d'un article (multipart, `photo`) |
+| POST · DELETE | `/me/avatar` | connecté | Photo de profil (multipart, `photo`) · suppression |
+| GET · POST | `/requests` | client habitué | Discussions · envoi rapide (`photos[]`, `message`) |
+| GET | `/requests/{id}` | client | Discussion + livraison programmée |
+| POST | `/requests/{id}/messages` | client | Message : `body`, `photo` ou `lat`/`lng` |
 | GET | `/courier/deliveries[?scope=history]` | livreur | Livraisons assignées |
 | GET | `/courier/deliveries/{id}` | livreur | Détail + coordonnées A/B |
 | POST | `/courier/deliveries/{id}/status` | livreur | `picked_up` puis `delivered` |

@@ -18,6 +18,8 @@ class UserResource extends JsonResource
             'role' => $this->role->value,
             'is_active' => $this->is_active,
             'vehicle' => $this->vehicle,
+            'avatar_url' => $this->avatarUrl(),
+            'is_regular' => $this->isRegularClient(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

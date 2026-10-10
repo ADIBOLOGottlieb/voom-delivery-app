@@ -135,6 +135,12 @@ class Delivery {
   final DateTime? deliveredAt;
   final String? cancelReason;
 
+  /// Photos des articles (URL publiques), visibles par le livreur.
+  final List<String> photos;
+
+  /// Discussion (demande rapide) à l'origine de la livraison, le cas échéant.
+  final int? requestId;
+
   const Delivery({
     required this.id,
     required this.reference,
@@ -162,6 +168,8 @@ class Delivery {
     required this.createdAt,
     this.deliveredAt,
     this.cancelReason,
+    this.photos = const [],
+    this.requestId,
   });
 
   bool get isActive => status != DeliveryStatus.delivered && status != DeliveryStatus.cancelled;
@@ -197,6 +205,8 @@ class Delivery {
         createdAt: _date(json['created_at'])!,
         deliveredAt: _date(json['delivered_at']),
         cancelReason: json['cancel_reason'] as String?,
+        photos: (json['photos'] as List? ?? const []).cast<String>(),
+        requestId: json['request_id'] as int?,
       );
 }
 

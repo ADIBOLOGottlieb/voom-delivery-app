@@ -47,13 +47,25 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _refreshProfile() async {
     try {
-      final data = await _api.get('/me') as Map<String, dynamic>;
-      _user = User.fromJson(data['data'] as Map<String, dynamic>);
-      await _storage.write(key: _userKey, value: jsonEncode(_user!.toJson()));
-      notifyListeners();
+      await _saveUser(await _api.get('/me'));
     } on ApiException catch (e) {
       debugPrint('Profil non rafraîchi : $e');
     }
+  }
+
+  /// Recharge le profil (ex. statut « client habitué » accordé par l'agence).
+  Future<void> refreshProfile() => _refreshProfile();
+
+  /// Ajoute ou remplace la photo de profil. Lève [ApiException] en cas d'échec.
+  Future<void> updateAvatar(String filePath) async =>
+      _saveUser(await _api.postFiles('/me/avatar', files: [('photo', filePath)]));
+
+  Future<void> removeAvatar() async => _saveUser(await _api.delete('/me/avatar'));
+
+  Future<void> _saveUser(dynamic response) async {
+    _user = User.fromJson((response as Map<String, dynamic>)['data'] as Map<String, dynamic>);
+    await _storage.write(key: _userKey, value: jsonEncode(_user!.toJson()));
+    notifyListeners();
   }
 
   /// Lève [ApiException] avec un message affichable en cas d'échec.

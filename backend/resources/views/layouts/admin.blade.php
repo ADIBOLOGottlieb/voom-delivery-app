@@ -9,6 +9,7 @@
     <script>
         tailwind.config = { theme: { extend: { colors: { voom: { DEFAULT: '#FAC223', dark: '#E0A800' } } } } };
     </script>
+    @stack('head')
 </head>
 <body class="bg-gray-100 text-gray-900 min-h-screen">
 @auth
@@ -16,12 +17,14 @@
         $nav = [
             ['admin.dashboard', 'Tableau de bord', 'admin.dashboard'],
             ['admin.deliveries.index', 'Livraisons', 'admin.deliveries.*'],
+            ['admin.requests.index', 'Demandes', 'admin.requests.*'],
             ['admin.couriers.index', 'Livreurs', 'admin.couriers.*'],
             ['admin.clients.index', 'Clients', 'admin.clients.*'],
             ['admin.products.index', 'Marketplace', 'admin.products.*'],
             ['admin.promotions.index', 'Promos', 'admin.promotions.*'],
             ['admin.settings.edit', 'Réglages', 'admin.settings.*'],
         ];
+        $unreadRequests = \App\Http\Controllers\Admin\RequestController::unreadCount();
     @endphp
     <header class="bg-black text-white">
         <div class="max-w-7xl mx-auto px-4 flex flex-wrap items-center gap-x-6 gap-y-2 py-3">
@@ -32,7 +35,7 @@
             <nav class="flex flex-wrap gap-1 text-sm flex-1">
                 @foreach ($nav as [$route, $label, $pattern])
                     <a href="{{ route($route) }}"
-                       class="px-3 py-1.5 rounded {{ request()->routeIs($pattern) ? 'bg-voom text-black font-semibold' : 'hover:bg-white/10' }}">{{ $label }}</a>
+                       class="px-3 py-1.5 rounded {{ request()->routeIs($pattern) ? 'bg-voom text-black font-semibold' : 'hover:bg-white/10' }}">{{ $label }}@if ($route === 'admin.requests.index' && $unreadRequests > 0)<span class="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-xs font-bold">{{ $unreadRequests }}</span>@endif</a>
                 @endforeach
             </nav>
             <form method="POST" action="{{ route('admin.logout') }}">
@@ -59,5 +62,6 @@
 
     @yield('content')
 </main>
+@stack('scripts')
 </body>
 </html>

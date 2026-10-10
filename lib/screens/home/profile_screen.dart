@@ -1,18 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/launchers.dart';
+import '../../widgets/photos.dart';
+import '../../widgets/user_avatar.dart';
 import '../auth/login_screen.dart';
 
 /// Profil (partagé par le client et le livreur).
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   static const supportPhone = '+22890000000';
 
-  Future<void> _logout(BuildContext context) async {
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _uploading = false;
+
+  /// Ajoute, change ou retire la photo de profil.
+  Future<void> _editPhoto() async {
+    final auth = context.read<AuthService>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    Future<void> run(Future<void> Function() action, String done) async {
+      setState(() => _uploading = true);
+      try {
+        await action();
+        messenger.showSnackBar(SnackBar(content: Text(done), backgroundColor: AppColors.success));
+      } on ApiException catch (e) {
+        messenger.showSnackBar(SnackBar(content: Text(e.message), backgroundColor: AppColors.error));
+      } finally {
+        if (mounted) setState(() => _uploading = false);
+      }
+    }
+
+    final path = await pickPhoto(
+      context,
+      onRemove: auth.user?.avatarUrl == null ? null : () => run(auth.removeAvatar, 'Photo retirée.'),
+    );
+    if (path != null) await run(() => auth.updateAvatar(path), 'Photo de profil mise à jour.');
+  }
+
+  Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -24,7 +58,7 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed != true || !context.mounted) return;
+    if (confirmed != true || !mounted) return;
 
     final navigator = Navigator.of(context, rootNavigator: true);
     await context.read<AuthService>().logout();
@@ -35,6 +69,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = context.watch<AuthService>().user;
     final textTheme = Theme.of(context).textTheme;
+    final hasPhoto = user?.avatarUrl != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -43,40 +78,82 @@ class ProfileScreen extends StatelessWidget {
         foregroundColor: AppColors.textPrimary,
       ),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(context).bottom),
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + MediaQuery.paddingOf(context).bottom),
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(24),
             ),
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: AppColors.secondary,
-                  child:
-                      Text(user?.initial ?? 'U', style: textTheme.headlineMedium?.copyWith(color: AppColors.primary)),
+                // Photo de profil : un appui pour ajouter / changer / retirer.
+                Semantics(
+                  button: true,
+                  label: hasPhoto ? 'Changer la photo de profil' : 'Ajouter une photo de profil',
+                  child: GestureDetector(
+                    onTap: _uploading ? null : _editPhoto,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                          child: UserAvatar(user: user, radius: 48),
+                        ),
+                        if (_uploading)
+                          const Positioned.fill(
+                            child: CircleAvatar(
+                              backgroundColor: Color(0x88000000),
+                              child: CircularProgressIndicator(color: AppColors.primary),
+                            ),
+                          ),
+                        Positioned(
+                          right: -2,
+                          bottom: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(Icons.photo_camera, color: AppColors.primary, size: 18),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 Text(user?.name ?? 'Utilisateur',
+                    textAlign: TextAlign.center,
                     style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text(user?.phoneNumber ?? '', style: textTheme.bodyMedium?.copyWith(color: AppColors.onPrimary)),
                 if (user?.email != null)
                   Text(user!.email!, style: textTheme.bodyMedium?.copyWith(color: AppColors.onPrimary)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(12)),
-                  child: Text(
-                    (user?.roleLabel ?? 'Client').toUpperCase(),
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (user?.isRegular ?? false) ...[
+                        const Icon(Icons.star_rounded, color: AppColors.primary, size: 16),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        (user?.roleLabel ?? 'Client').toUpperCase(),
+                        style: textTheme.bodySmall?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
                 if (user?.vehicle != null) ...[
@@ -89,11 +166,19 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 24),
           Card(
             child: ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: Text(hasPhoto ? 'Changer la photo de profil' : 'Ajouter une photo de profil'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _uploading ? null : _editPhoto,
+            ),
+          ),
+          Card(
+            child: ListTile(
               leading: const Icon(Icons.support_agent),
               title: const Text("Contacter l'agence"),
-              subtitle: const Text(supportPhone),
+              subtitle: const Text(ProfileScreen.supportPhone),
               trailing: const Icon(Icons.call),
-              onTap: () => callPhone(context, supportPhone),
+              onTap: () => callPhone(context, ProfileScreen.supportPhone),
             ),
           ),
           const Card(
@@ -105,7 +190,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           OutlinedButton.icon(
-            onPressed: () => _logout(context),
+            onPressed: _logout,
             icon: const Icon(Icons.logout, color: AppColors.error),
             label: const Text('Se déconnecter', style: TextStyle(color: AppColors.error)),
             style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.error)),

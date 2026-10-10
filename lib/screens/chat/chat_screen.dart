@@ -1,0 +1,416 @@
+import 'dart:async';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/chat.dart';
+import '../../services/api_client.dart';
+import '../../services/delivery_service.dart';
+import '../../services/geocoding_service.dart';
+import '../../utils/colors.dart';
+import '../../utils/formatters.dart';
+import '../../utils/launchers.dart';
+import '../../widgets/photos.dart';
+import '../common/location_picker_screen.dart';
+import '../home/delivery_detail_screen.dart';
+
+/// Discussion avec l'agence pour une demande rapide (style messagerie).
+class ChatScreen extends StatefulWidget {
+  final int requestId;
+  final ChatRequest? initial;
+
+  const ChatScreen({super.key, required this.requestId, this.initial});
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final _input = TextEditingController();
+  late ChatRequest? _request = widget.initial;
+  String? _error;
+  bool _sending = false;
+  Timer? _poll;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    // Nouvelles réponses de l'agence sans recharger l'écran.
+    _poll = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (!_sending) _load();
+    });
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    _input.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      final r = await context.read<DeliveryService>().chatRequest(widget.requestId);
+      if (mounted) {
+        setState(() {
+          _request = r;
+          _error = null;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted && _request == null) setState(() => _error = e.message);
+    }
+  }
+
+  Future<void> _send({String? body, String? photoPath, double? lat, double? lng}) async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _sending = true);
+    try {
+      await context
+          .read<DeliveryService>()
+          .sendChatMessage(widget.requestId, body: body, photoPath: photoPath, lat: lat, lng: lng);
+      if (lat == null && body != null) _input.clear();
+      await _load();
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message), backgroundColor: AppColors.error));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  void _sendText() {
+    final text = _input.text.trim();
+    if (text.isNotEmpty) _send(body: text);
+  }
+
+  Future<void> _attach() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => const SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Row(
+            children: [
+              _AttachOption(icon: Icons.photo_camera, label: 'Photo', color: AppColors.primaryDark, value: 'photo'),
+              _AttachOption(icon: Icons.location_on, label: 'Position', color: AppColors.success, value: 'location'),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+
+    if (choice == 'photo') {
+      final path = await pickPhoto(context);
+      if (path != null) await _send(photoPath: path);
+    } else {
+      final place = await Navigator.of(context).push<Place>(
+        MaterialPageRoute(builder: (_) => const LocationPickerScreen(title: 'Partager une position')),
+      );
+      if (place != null) await _send(body: place.label, lat: place.point.latitude, lng: place.point.longitude);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = _request;
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4EFE6),
+      appBar: AppBar(
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            const CircleAvatar(
+              radius: 18,
+              backgroundColor: AppColors.primary,
+              child: Icon(Icons.support_agent, color: AppColors.onPrimary, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Agence VOOM', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  if (r != null)
+                    Text('${r.reference} · ${r.statusLabel}', style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: r == null
+          ? Center(
+              child: _error == null
+                  ? const CircularProgressIndicator()
+                  : Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(_error!, style: const TextStyle(color: AppColors.error)),
+                      TextButton(onPressed: _load, child: const Text('Réessayer')),
+                    ]),
+            )
+          : Column(
+              children: [
+                if (r.delivery != null) _DeliveryBanner(delivery: r.delivery!, onChanged: _load),
+                Expanded(
+                  child: ListView.builder(
+                    reverse: true,
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                    itemCount: r.messages.length,
+                    itemBuilder: (context, i) => _Bubble(message: r.messages[r.messages.length - 1 - i]),
+                  ),
+                ),
+                _Composer(controller: _input, sending: _sending, onAttach: _attach, onSend: _sendText),
+              ],
+            ),
+    );
+  }
+}
+
+class _AttachOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final String value;
+
+  const _AttachOption({required this.icon, required this.label, required this.color, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => Navigator.pop(context, value),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            children: [
+              CircleAvatar(radius: 28, backgroundColor: color, child: Icon(icon, color: Colors.white, size: 28)),
+              const SizedBox(height: 8),
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Livraison programmée par l'agence : accès direct au paiement et au suivi.
+class _DeliveryBanner extends StatelessWidget {
+  final ScheduledDelivery delivery;
+  final VoidCallback onChanged;
+
+  const _DeliveryBanner({required this.delivery, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    Future<void> open() async {
+      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => DeliveryDetailScreen(deliveryId: delivery.id)));
+      onChanged();
+    }
+
+    return Material(
+      color: AppColors.primary,
+      child: InkWell(
+        onTap: open,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+          child: Row(
+            children: [
+              const Icon(Icons.local_shipping, color: AppColors.onPrimary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Livraison ${delivery.reference} · ${formatFcfa(delivery.totalAmount)}',
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(delivery.statusLabel, style: const TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: AppColors.primary,
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: open,
+                child: Text(delivery.canPay ? 'Payer' : 'Suivre'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Bubble extends StatelessWidget {
+  final ChatMessage message;
+
+  const _Bubble({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final m = message;
+    if (m.isSystem) {
+      return Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(12)),
+          child: Text(m.body ?? '', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.5)),
+        ),
+      );
+    }
+
+    final mine = m.isMine;
+    final hasPhoto = m.photoUrl != null;
+
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 3),
+          padding: EdgeInsets.all(hasPhoto ? 4 : 10),
+          decoration: BoxDecoration(
+            color: mine ? AppColors.primary : Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(18),
+              topRight: const Radius.circular(18),
+              bottomLeft: Radius.circular(mine ? 18 : 4),
+              bottomRight: Radius.circular(mine ? 4 : 18),
+            ),
+            boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 4, offset: Offset(0, 1))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (hasPhoto)
+                GestureDetector(
+                  onTap: () => openPhotoViewer(context, [m.photoUrl!]),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: CachedNetworkImage(
+                      imageUrl: m.photoUrl!,
+                      width: 230,
+                      height: 230,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(width: 230, height: 230, color: AppColors.surface),
+                    ),
+                  ),
+                ),
+              if (m.hasLocation)
+                InkWell(
+                  onTap: () => openMapAt(context, m.lat!, m.lng!),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircleAvatar(
+                        radius: 16,
+                        backgroundColor: AppColors.success,
+                        child: Icon(Icons.location_on, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(m.body ?? 'Position partagée',
+                            style: const TextStyle(fontWeight: FontWeight.w600, decoration: TextDecoration.underline)),
+                      ),
+                    ],
+                  ),
+                )
+              else if (m.body != null)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(hasPhoto ? 6 : 0, hasPhoto ? 6 : 0, 0, 0),
+                  child: Align(alignment: Alignment.centerLeft, child: Text(m.body!, style: const TextStyle(fontSize: 15))),
+                ),
+              Padding(
+                padding: EdgeInsets.only(top: 2, right: hasPhoto ? 6 : 0),
+                child: Text(formatTime(m.createdAt), style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Composer extends StatelessWidget {
+  final TextEditingController controller;
+  final bool sending;
+  final VoidCallback onAttach;
+  final VoidCallback onSend;
+
+  const _Composer({required this.controller, required this.sending, required this.onAttach, required this.onSend});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28)),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      tooltip: 'Photo ou position',
+                      onPressed: sending ? null : onAttach,
+                      icon: const Icon(Icons.add_circle_outline, color: AppColors.textSecondary),
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        minLines: 1,
+                        maxLines: 5,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          hintText: 'Message',
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          contentPadding: EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 50,
+              height: 50,
+              child: FloatingActionButton(
+                heroTag: null,
+                elevation: 1,
+                tooltip: 'Envoyer',
+                onPressed: sending ? null : onSend,
+                backgroundColor: AppColors.secondary,
+                foregroundColor: AppColors.primary,
+                child: sending
+                    ? const SizedBox(
+                        width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primary))
+                    : const Icon(Icons.send_rounded),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

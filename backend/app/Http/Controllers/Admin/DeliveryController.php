@@ -64,7 +64,7 @@ class DeliveryController extends Controller
 
     public function show(Delivery $delivery): View
     {
-        $delivery->load(['client', 'courier', 'product', 'payments.reviewer']);
+        $delivery->load(['client', 'courier', 'product', 'payments.reviewer', 'photos', 'deliveryRequest']);
 
         $couriers = User::couriers()
             ->where('is_active', true)

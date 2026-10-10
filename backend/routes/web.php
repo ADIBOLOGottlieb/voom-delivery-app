@@ -4,13 +4,18 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Controllers\Admin\RequestController;
 use App\Http\Controllers\Admin\SubcategoryController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CheckoutPageController;
+use App\Http\Controllers\MediaController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin');
+
+// Images envoyées depuis l'app (profil, articles, chat), stockées en base.
+Route::get('/media/{uuid}', [MediaController::class, 'show'])->whereUuid('uuid')->name('media.show');
 
 // Page de paiement KKiaPay ouverte depuis l'app (le jeton UUID du paiement sert de lien à usage unique).
 Route::middleware('throttle:30,1')->group(function () {
@@ -40,6 +45,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/payments/{payment}/reject', [DeliveryController::class, 'rejectPayment'])->name('payments.reject');
         Route::get('/payments/{payment}/screenshot', [DeliveryController::class, 'screenshot'])->name('payments.screenshot');
 
+        // Demandes rapides (photos + chat) des clients habitués.
+        Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
+        Route::get('/requests/{deliveryRequest}', [RequestController::class, 'show'])->name('requests.show');
+        Route::post('/requests/{deliveryRequest}/reply', [RequestController::class, 'reply'])->name('requests.reply');
+        Route::post('/requests/{deliveryRequest}/schedule', [RequestController::class, 'schedule'])->name('requests.schedule');
+        Route::post('/requests/{deliveryRequest}/close', [RequestController::class, 'close'])->name('requests.close');
+
         Route::get('/couriers', [UserController::class, 'couriers'])->name('couriers.index');
         Route::get('/couriers/create', [UserController::class, 'create'])->name('couriers.create');
         Route::post('/couriers', [UserController::class, 'store'])->name('couriers.store');
@@ -48,6 +60,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/clients', [UserController::class, 'clients'])->name('clients.index');
         Route::post('/clients/{client}/toggle', [UserController::class, 'toggleClient'])->name('clients.toggle');
+        Route::post('/clients/{client}/regular', [UserController::class, 'toggleRegular'])->name('clients.regular');
 
         Route::resource('products', ProductController::class)->except('show');
 

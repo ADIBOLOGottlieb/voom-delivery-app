@@ -9,7 +9,9 @@ import '../../utils/formatters.dart';
 import '../../utils/launchers.dart';
 import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/delivery_map.dart';
+import '../../widgets/photos.dart';
 import '../../widgets/status_chip.dart';
+import '../chat/chat_screen.dart';
 import 'payment_screen.dart';
 
 /// Suivi d'une livraison par le client.
@@ -115,6 +117,34 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                       const SizedBox(height: 16),
                       _PointTile(letter: 'A', color: AppColors.success, title: 'Récupération', point: d.pickup),
                       _PointTile(letter: 'B', color: AppColors.error, title: 'Destination', point: d.dropoff),
+                      if (d.photos.isNotEmpty)
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Photos des articles', style: Theme.of(context).textTheme.titleMedium),
+                                const SizedBox(height: 8),
+                                PhotoStrip(urls: d.photos),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (d.requestId != null)
+                        Card(
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: AppColors.primary,
+                              child: Icon(Icons.forum_outlined, color: AppColors.onPrimary),
+                            ),
+                            title: const Text("Discussion avec l'agence"),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => ChatScreen(requestId: d.requestId!)),
+                            ),
+                          ),
+                        ),
                       if (d.courier != null)
                         Card(
                           child: ListTile(

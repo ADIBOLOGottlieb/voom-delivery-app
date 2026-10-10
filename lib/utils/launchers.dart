@@ -11,6 +11,12 @@ Future<void> openNavigation(BuildContext context, double lat, double lng) {
   return _launch(context, uri, 'Impossible d\'ouvrir Google Maps.');
 }
 
+/// Affiche un point sur Google Maps (position partagée dans la discussion).
+Future<void> openMapAt(BuildContext context, double lat, double lng) {
+  final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+  return _launch(context, uri, 'Impossible d\'ouvrir la carte.');
+}
+
 Future<void> callPhone(BuildContext context, String phone) {
   final uri = Uri(scheme: 'tel', path: phone.replaceAll(' ', ''));
   return _launch(context, uri, 'Impossible de lancer l\'appel.');

@@ -12,6 +12,12 @@ class User {
   final String role;
   final String? vehicle;
 
+  /// Photo de profil (URL publique servie par l'API), null si aucune.
+  final String? avatarUrl;
+
+  /// Client habitué : peut commander par simple envoi de photos (demande rapide + chat).
+  final bool isRegular;
+
   const User({
     required this.id,
     required this.name,
@@ -19,6 +25,8 @@ class User {
     required this.phoneNumber,
     required this.role,
     this.vehicle,
+    this.avatarUrl,
+    this.isRegular = false,
   });
 
   bool get isCourier => role == UserRole.courier;
@@ -27,10 +35,12 @@ class User {
   String get roleLabel => switch (role) {
         UserRole.courier => 'Livreur',
         UserRole.admin => 'Administrateur',
-        _ => 'Client',
+        _ => isRegular ? 'Client fidèle' : 'Client',
       };
 
   String get initial => name.trim().isEmpty ? 'U' : name.trim()[0].toUpperCase();
+
+  String get firstName => name.trim().split(RegExp(r'\s+')).first;
 
   factory User.fromJson(Map<String, dynamic> json) => User(
         id: json['id'] as int,
@@ -39,6 +49,8 @@ class User {
         phoneNumber: json['phone_number'] as String,
         role: json['role'] as String,
         vehicle: json['vehicle'] as String?,
+        avatarUrl: json['avatar_url'] as String?,
+        isRegular: json['is_regular'] as bool? ?? false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -48,5 +60,7 @@ class User {
         'phone_number': phoneNumber,
         'role': role,
         'vehicle': vehicle,
+        'avatar_url': avatarUrl,
+        'is_regular': isRegular,
       };
 }

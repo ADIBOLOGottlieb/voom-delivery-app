@@ -11,6 +11,7 @@ import '../../utils/colors.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/delivery_type_tiles.dart';
+import '../../widgets/photos.dart';
 import '../../services/geocoding_service.dart';
 import '../common/location_picker_screen.dart';
 
@@ -47,6 +48,10 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
   DeliveryQuote? _quote;
   bool _quoting = false;
   bool _submitting = false;
+
+  /// Photos des articles à livrer (aident le livreur à reconnaître le colis).
+  final _photos = <String>[];
+  static const _maxPhotos = 6;
 
   bool get _isOrder => widget.product != null;
 
@@ -165,6 +170,42 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
     setState(() => _scheduledAt = DateTime(date.year, date.month, date.day, time.hour, time.minute));
   }
 
+  Future<void> _addPhotos() async {
+    final remaining = _maxPhotos - _photos.length;
+    final fromCamera = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Prendre une photo'),
+              onTap: () => Navigator.pop(context, true),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: Text('Choisir dans la galerie (jusqu\'à $remaining)'),
+              onTap: () => Navigator.pop(context, false),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (fromCamera == null) return;
+
+    final List<String> picked;
+    if (fromCamera) {
+      final path = await pickPhotoFromCamera();
+      picked = path == null ? const [] : [path];
+    } else {
+      picked = await pickPhotosFromGallery(limit: remaining);
+    }
+    if (mounted && picked.isNotEmpty) setState(() => _photos.addAll(picked.take(remaining)));
+  }
+
   Future<void> _submit() async {
     final messenger = ScaffoldMessenger.of(context);
     void error(String msg) => messenger.showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.error));
@@ -203,11 +244,24 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
 
     setState(() => _submitting = true);
     try {
-      final delivery = await context.read<DeliveryService>().createDelivery(payload);
+      final service = context.read<DeliveryService>();
+      final delivery = await service.createDelivery(payload);
+
+      // Photos envoyées une à une : un échec n'annule pas la demande déjà créée.
+      var failed = 0;
+      for (final path in _photos) {
+        try {
+          await service.addDeliveryPhoto(delivery.id, path);
+        } on ApiException {
+          failed++;
+        }
+      }
       if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Demande créée. Effectuez le paiement pour la confirmer.'),
-        backgroundColor: AppColors.success,
+      messenger.showSnackBar(SnackBar(
+        content: Text(failed == 0
+            ? 'Demande créée. Effectuez le paiement pour la confirmer.'
+            : 'Demande créée, mais $failed photo(s) non envoyée(s).'),
+        backgroundColor: failed == 0 ? AppColors.success : AppColors.warning,
       ));
       Navigator.of(context).pop(delivery);
     } on ApiException catch (e) {
@@ -359,7 +413,24 @@ class _NewDeliveryScreenState extends State<NewDeliveryScreen> {
                   prefixIcon: Icon(Icons.inventory_2_outlined),
                 ),
               ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Icon(Icons.photo_library_outlined, size: 20),
+                const SizedBox(width: 8),
+                Text('Photos des articles', style: Theme.of(context).textTheme.titleMedium),
+                const Spacer(),
+                Text('${_photos.length}/$_maxPhotos · facultatif', style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+            const SizedBox(height: 10),
+            LocalPhotoGrid(
+              paths: _photos,
+              max: _maxPhotos,
+              onAdd: _addPhotos,
+              onRemove: (i) => setState(() => _photos.removeAt(i)),
+            ),
+            const SizedBox(height: 20),
             TextFormField(
               controller: _notes,
               maxLines: 2,

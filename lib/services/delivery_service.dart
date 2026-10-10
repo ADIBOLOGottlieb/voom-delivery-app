@@ -1,3 +1,4 @@
+import '../models/chat.dart';
 import '../models/delivery.dart';
 import '../models/product.dart';
 import 'api_client.dart';
@@ -73,6 +74,40 @@ class DeliveryService {
       (data['payment'] as Map<String, dynamic>)['status'] as String,
       Delivery.fromJson(data['delivery'] as Map<String, dynamic>),
     );
+  }
+
+  /// Photo d'un article, jointe à une livraison après sa création.
+  Future<Delivery> addDeliveryPhoto(int deliveryId, String filePath) async =>
+      _one(await _api.postFiles('/deliveries/$deliveryId/photos', files: [('photo', filePath)]));
+
+  // --- Demandes rapides (clients habitués) : photos + chat ----------------
+
+  Future<List<ChatRequest>> chatRequests() async => _list(await _api.get('/requests'), ChatRequest.fromJson);
+
+  Future<ChatRequest> chatRequest(int id) async =>
+      ChatRequest.fromJson((await _api.get('/requests/$id') as Map<String, dynamic>)['data'] as Map<String, dynamic>);
+
+  Future<ChatRequest> createChatRequest({required List<String> photoPaths, String? message}) async {
+    final data = await _api.postFiles(
+      '/requests',
+      fields: {if (message != null && message.isNotEmpty) 'message': message},
+      files: [for (final p in photoPaths) ('photos[]', p)],
+    );
+    return ChatRequest.fromJson((data as Map<String, dynamic>)['data'] as Map<String, dynamic>);
+  }
+
+  /// Texte, photo ou position partagée.
+  Future<ChatMessage> sendChatMessage(int requestId, {String? body, String? photoPath, double? lat, double? lng}) async {
+    final data = await _api.postFiles(
+      '/requests/$requestId/messages',
+      fields: {
+        if (body != null && body.isNotEmpty) 'body': body,
+        if (lat != null) 'lat': '$lat',
+        if (lng != null) 'lng': '$lng',
+      },
+      files: [if (photoPath != null) ('photo', photoPath)],
+    );
+    return ChatMessage.fromJson((data as Map<String, dynamic>)['data'] as Map<String, dynamic>);
   }
 
   Future<List<Product>> products({required String category, int? subcategoryId, String? type, String? search}) async =>
