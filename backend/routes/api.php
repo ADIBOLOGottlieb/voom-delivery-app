@@ -62,6 +62,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/deliveries', [CourierDeliveryController::class, 'index']);
             Route::get('/deliveries/{delivery}', [CourierDeliveryController::class, 'show']);
             Route::post('/deliveries/{delivery}/status', [CourierDeliveryController::class, 'updateStatus']);
+            Route::post('/deliveries/{delivery}/cancel', [CourierDeliveryController::class, 'cancel']);
+            Route::post('/location', [CourierDeliveryController::class, 'location'])->middleware('throttle:60,1');
         });
+
+        Route::middleware('role:client')->post('/deliveries/{delivery}/review', [\App\Http\Controllers\Api\DeliveryController::class, 'review']);
     });
 });

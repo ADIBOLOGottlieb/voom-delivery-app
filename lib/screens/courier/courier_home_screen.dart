@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/delivery.dart';
 import '../../services/auth_service.dart';
+import '../../services/delivery_service.dart';
 import '../../services/paged_api.dart';
 import '../../services/push_service.dart';
 import '../../utils/colors.dart';
@@ -31,6 +34,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
     (page) => _api.courierDeliveries(history: true, page: page),
     idOf: (d) => d.id,
   );
+  StreamSubscription<Position>? _locationStream;
 
   @override
   void initState() {
@@ -39,12 +43,51 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => PushService.openPending());
     _todo.refresh();
     _history.refresh();
+    _startLocationTracking();
+  }
+
+  Future<void> _startLocationTracking() async {
+    final deliveryService = context.read<DeliveryService>();
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return;
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) return;
+      if (permission == LocationPermission.whileInUse && mounted) {
+        final openSettings = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
+          title: const Text('Autoriser le suivi en arrière-plan'),
+          content: const Text('Pour que l’agence voie votre position pendant toute votre connexion, choisissez « Toujours autoriser » dans les réglages de localisation.'),
+          actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Plus tard')), ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Ouvrir les réglages'))],
+        ));
+        if (openSettings == true) {
+          await Geolocator.openAppSettings();
+          for (var attempt = 0; attempt < 60 && mounted; attempt++) {
+            await Future<void>.delayed(const Duration(seconds: 2));
+            permission = await Geolocator.checkPermission();
+            if (permission == LocationPermission.always) break;
+          }
+        }
+      }
+      if (!mounted || (permission != LocationPermission.always && permission != LocationPermission.whileInUse)) return;
+    final LocationSettings settings = defaultTargetPlatform == TargetPlatform.android
+        ? AndroidSettings(accuracy: LocationAccuracy.high, distanceFilter: 0, intervalDuration: const Duration(seconds: 30),
+            foregroundNotificationConfig: const ForegroundNotificationConfig(notificationTitle: 'VOOM — suivi activé', notificationText: 'Votre position est partagée avec l’agence pendant votre connexion.', enableWakeLock: true, setOngoing: true))
+        : (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS
+            ? AppleSettings(accuracy: LocationAccuracy.high, distanceFilter: 0, activityType: ActivityType.other, pauseLocationUpdatesAutomatically: false, showBackgroundLocationIndicator: true)
+            : const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 0));
+    _locationStream = Geolocator.getPositionStream(locationSettings: settings).listen((position) {
+      deliveryService.sendCourierLocation(position.latitude, position.longitude).catchError((_) {});
+    });
+    } catch (error) {
+      debugPrint('Suivi de localisation indisponible : $error');
+    }
   }
 
   @override
   void dispose() {
     _todo.dispose();
     _history.dispose();
+    _locationStream?.cancel();
     super.dispose();
   }
 
@@ -73,6 +116,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
             children: [
               const Text('Mes livraisons', style: TextStyle(color: AppColors.primary)),
               Text(user?.name ?? '', style: const TextStyle(fontSize: 13, color: Colors.white70)),
+              const Text('Position partagée avec l’agence pendant la connexion', style: TextStyle(fontSize: 10, color: Colors.white60)),
             ],
           ),
           actions: [

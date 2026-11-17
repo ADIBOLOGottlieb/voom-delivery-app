@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\DeliveryResource;
 use App\Models\Delivery;
 use App\Models\Media;
+use App\Models\CourierReview;
 use App\Models\Product;
 use App\Services\Payments\PaymentService;
 use App\Services\PricingService;
@@ -21,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 /** Demandes de livraison côté client. */
 class DeliveryController extends Controller
 {
-    private const RELATIONS = ['courier', 'client', 'product', 'latestPayment', 'photos', 'deliveryRequest'];
+    private const RELATIONS = ['courier', 'client', 'product', 'latestPayment', 'photos', 'deliveryRequest', 'signature'];
 
     private const MAX_PHOTOS = 6;
 
@@ -113,6 +114,16 @@ class DeliveryController extends Controller
         $delivery->cancelByClient($request->string('reason')->limit(255)->toString() ?: 'Annulée par le client');
 
         return new DeliveryResource($delivery->load(self::RELATIONS));
+    }
+
+    public function review(Request $request, Delivery $delivery)
+    {
+        $this->authorizeOwner($request, $delivery);
+        abort_unless($delivery->status->value === 'delivered' && $delivery->courier_id, 422, 'Seules les courses livrées peuvent être évaluées.');
+        $data = $request->validate(['rating' => ['required', 'integer', 'between:1,5'], 'comment' => ['nullable', 'string', 'max:1000']]);
+        abort_if(CourierReview::where('delivery_id', $delivery->id)->exists(), 409, 'Cette course a déjà été évaluée.');
+        $review = CourierReview::create(['delivery_id' => $delivery->id, 'client_id' => $request->user()->id, 'courier_id' => $delivery->courier_id, ...$data]);
+        return response()->json(['data' => $review], 201);
     }
 
     /** Envoi de la preuve de paiement (capture d'écran Flooz / Mixx by Yas). */

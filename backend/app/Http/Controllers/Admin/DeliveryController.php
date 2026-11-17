@@ -8,6 +8,7 @@ use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Delivery;
 use App\Models\Payment;
+use App\Models\Media;
 use App\Models\User;
 use App\Services\DeliveryReminder;
 use App\Services\Payments\PaymentService;
@@ -16,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class DeliveryController extends Controller
@@ -71,7 +73,7 @@ class DeliveryController extends Controller
 
     public function show(Delivery $delivery): View
     {
-        $delivery->load(['client', 'courier', 'product', 'payments.reviewer', 'photos', 'deliveryRequest']);
+        $delivery->load(['client', 'courier', 'product', 'payments.reviewer', 'photos', 'deliveryRequest', 'signature']);
 
         $couriers = User::couriers()
             ->where('is_active', true)
@@ -81,6 +83,57 @@ class DeliveryController extends Controller
             ->get();
 
         return view('admin.deliveries.show', compact('delivery', 'couriers'));
+    }
+
+    public function cancelled(Request $request): View
+    {
+        $deliveries = Delivery::with(['client', 'courier'])->where('status', DeliveryStatus::Cancelled)->latest('cancelled_at')->paginate(25);
+        return view('admin.deliveries.cancelled', compact('deliveries'));
+    }
+
+    public function reprogram(Request $request, Delivery $delivery): RedirectResponse
+    {
+        abort_unless($delivery->status === DeliveryStatus::Cancelled, 422);
+        $data = $request->validate(['scheduled_at' => ['required', 'date', 'after:now']]);
+        $delivery->forceFill(['status' => DeliveryStatus::Pending, 'courier_id' => null, 'scheduled_at' => $data['scheduled_at'], 'reprogrammed_by' => $request->user()->id, 'reprogrammed_at' => now()])->save();
+        return back()->with('success', 'Course reprogrammée ; elle est disponible pour une nouvelle assignation.');
+    }
+
+    public function destroyCancelled(Delivery $delivery): RedirectResponse
+    {
+        abort_unless($delivery->status === DeliveryStatus::Cancelled, 404);
+        $signatureId = $delivery->signature_media_id;
+        $delivery->delete();
+        if ($signatureId) Media::whereKey($signatureId)->delete();
+        return redirect()->route('admin.deliveries.cancelled')->with('success', 'Course supprimée définitivement.');
+    }
+
+    public function courierLocations(): View
+    {
+        $couriers = User::couriers()->where('is_active', true)->where('location_updated_at', '>=', now()->subMinutes(2))->get();
+        return view('admin.couriers.locations', compact('couriers'));
+    }
+
+    public function reviews(): View
+    {
+        $reviews = \App\Models\CourierReview::with(['client', 'courier', 'delivery'])->latest()->paginate(30);
+        return view('admin.reviews.index', compact('reviews'));
+    }
+
+    public function courierStats(Request $request): View
+    {
+        $month = $request->validate(['month' => ['nullable', 'date_format:Y-m']])['month'] ?? now()->format('Y-m');
+        $start = \Carbon\Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+        $couriers = User::couriers()->withAvg('courierReviews', 'rating')->withCount([
+            'assignedDeliveries as delivered_count' => fn ($q) => $q->where('status', DeliveryStatus::Delivered)->whereBetween('delivered_at', [$start, $end]),
+        ])->orderBy('name')->get();
+        foreach ($couriers as $courier) {
+            $events = DB::table('delivery_cancellation_events')->where('courier_id', $courier->id)->whereBetween('cancelled_at', [$start, $end]);
+            $courier->cancelled_count = (clone $events)->count();
+            $courier->cancelled_by_count = (clone $events)->where('actor', 'courier')->count();
+        }
+        return view('admin.couriers.stats', compact('couriers', 'month'));
     }
 
     public function assign(Request $request, Delivery $delivery): RedirectResponse

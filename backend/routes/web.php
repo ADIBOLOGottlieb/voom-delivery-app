@@ -41,9 +41,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/', [DeliveryController::class, 'dashboard'])->name('dashboard');
 
         Route::get('/deliveries', [DeliveryController::class, 'index'])->name('deliveries.index');
+        Route::get('/deliveries/cancelled', [DeliveryController::class, 'cancelled'])->name('deliveries.cancelled');
         Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show'])->name('deliveries.show');
+        Route::post('/deliveries/{delivery}/reprogram', [DeliveryController::class, 'reprogram'])->name('deliveries.reprogram');
         Route::post('/deliveries/{delivery}/assign', [DeliveryController::class, 'assign'])->name('deliveries.assign');
         Route::post('/deliveries/{delivery}/cancel', [DeliveryController::class, 'cancel'])->name('deliveries.cancel');
+        Route::delete('/deliveries/{delivery}/permanent', [DeliveryController::class, 'destroyCancelled'])->name('deliveries.destroy-cancelled');
+        Route::get('/couriers/locations', [DeliveryController::class, 'courierLocations'])->name('couriers.locations');
+        Route::get('/couriers/stats', [DeliveryController::class, 'courierStats'])->name('couriers.stats');
+        Route::get('/reviews', [DeliveryController::class, 'reviews'])->name('reviews.index');
+        Route::resource('expenses', \App\Http\Controllers\Admin\ExpenseController::class)->except('show');
 
         Route::post('/deliveries/{delivery}/confirm-payment', [DeliveryController::class, 'confirmPayment'])->name('deliveries.confirm-payment');
         Route::post('/payments/{payment}/approve', [DeliveryController::class, 'approvePayment'])->name('payments.approve');

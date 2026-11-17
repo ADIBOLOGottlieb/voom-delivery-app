@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
     'pickup_address', 'pickup_lat', 'pickup_lng', 'pickup_contact_name', 'pickup_contact_phone',
     'dropoff_address', 'dropoff_lat', 'dropoff_lng', 'recipient_name', 'recipient_phone',
     'package_description', 'notes', 'scheduled_at', 'deadline_at', 'distance_km', 'delivery_fee',
-    'items_amount', 'total_amount',
+    'items_amount', 'total_amount', 'courier_note', 'signature_media_id', 'signed_at', 'cancellation_actor', 'reprogrammed_by',
 ])]
 class Delivery extends Model
 {
@@ -68,6 +68,7 @@ class Delivery extends Model
             'picked_up_at' => 'datetime',
             'delivered_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'signed_at' => 'datetime',
         ];
     }
 
@@ -107,6 +108,18 @@ class Delivery extends Model
     {
         return $this->hasOne(DeliveryRequest::class);
     }
+
+    public function signature(): BelongsTo { return $this->belongsTo(Media::class, 'signature_media_id'); }
+
+    public function appendCourierNote(?string $note): void
+    {
+        $note = trim((string) $note);
+        if ($note === '') return;
+        $entry = now()->format('d/m/Y H:i').' — '.$note;
+        $this->forceFill(['courier_note' => trim(($this->courier_note ? $this->courier_note."\n" : '').$entry)])->save();
+    }
+
+    public function review(): HasOne { return $this->hasOne(CourierReview::class); }
 
     /** Le client peut encore ajouter des photos tant que le colis n'est pas récupéré. */
     public function acceptsPhotos(): bool
@@ -218,7 +231,7 @@ class Delivery extends Model
     /** Annulation depuis l'app : recontrôlée sous verrou (une preuve a pu arriver entre-temps). */
     public function cancelByClient(string $reason): void
     {
-        $this->cancelWhen(fn (self $fresh) => $fresh->canBeCancelledByClient() ? null : $fresh->clientCancelRefusal(), $reason);
+        $this->cancelWhen(fn (self $fresh) => $fresh->canBeCancelledByClient() ? null : $fresh->clientCancelRefusal(), $reason, 'client');
     }
 
     public function clientCancelRefusal(): string
@@ -229,9 +242,15 @@ class Delivery extends Model
     }
 
     /** @param callable(self): ?string $refusal motif du refus, ou null si l'annulation est permise */
-    private function cancelWhen(callable $refusal, ?string $reason): void
+    public function cancelByCourier(string $reason, ?string $note = null): void
     {
-        DB::transaction(function () use ($refusal, $reason) {
+        $this->cancelWhen(fn (self $fresh) => $fresh->courier_id && in_array($fresh->status, [DeliveryStatus::Assigned, DeliveryStatus::PickedUp], true) ? null : 'Cette course ne peut plus être annulée par le livreur.', $reason, 'courier');
+        $this->appendCourierNote($note);
+    }
+
+    private function cancelWhen(callable $refusal, ?string $reason, ?string $actor = 'admin'): void
+    {
+        DB::transaction(function () use ($refusal, $reason, $actor) {
             $fresh = $this->lockFresh();
             if ($message = $refusal($fresh)) {
                 throw ValidationException::withMessages(['status' => $message]);
@@ -241,7 +260,12 @@ class Delivery extends Model
                 'status' => DeliveryStatus::Cancelled,
                 'cancelled_at' => now(),
                 'cancel_reason' => $reason,
+                'cancellation_actor' => $actor,
             ])->save();
+            DB::table('delivery_cancellation_events')->insert([
+                'delivery_id' => $fresh->id, 'courier_id' => $fresh->courier_id, 'actor' => $actor ?? 'admin',
+                'reason' => $reason ?? 'Annulation', 'cancelled_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+            ]);
 
             // La demande photo d'origine redevient « en discussion » : l'agence peut reprogrammer.
             DeliveryRequest::where('delivery_id', $fresh->id)

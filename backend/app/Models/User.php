@@ -80,6 +80,11 @@ class User extends Authenticatable
         return $this->hasMany(Delivery::class, 'courier_id');
     }
 
+    public function courierReviews(): HasMany
+    {
+        return $this->hasMany(CourierReview::class, 'courier_id');
+    }
+
     public function scopeCouriers(Builder $query): Builder
     {
         return $query->where('role', Role::Courier);

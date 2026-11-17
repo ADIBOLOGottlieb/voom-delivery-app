@@ -20,6 +20,7 @@ class ProductResource extends JsonResource
             'price' => $this->price,
             'unit' => $this->unit,
             'image_url' => $this->imageUrl(),
+            'video_url' => $this->video?->url(),
             'vendor_name' => $this->vendor_name,
             'pickup_address' => $this->pickup_address,
             // Contenu d'un pack (vide pour un produit simple).

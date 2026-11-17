@@ -145,6 +145,9 @@ class Delivery {
   final DateTime createdAt;
   final DateTime? deliveredAt;
   final String? cancelReason;
+  final String? courierNote;
+  final String? signatureUrl;
+  final bool canReview;
 
   /// Photos des articles (URL publiques), visibles par le livreur.
   final List<String> photos;
@@ -180,6 +183,9 @@ class Delivery {
     required this.createdAt,
     this.deliveredAt,
     this.cancelReason,
+    this.courierNote,
+    this.signatureUrl,
+    this.canReview = false,
     this.photos = const [],
     this.requestId,
   });
@@ -221,6 +227,9 @@ class Delivery {
         createdAt: _date(json['created_at']) ?? DateTime.now(),
         deliveredAt: _date(json['delivered_at']),
         cancelReason: json['cancel_reason'] as String?,
+        courierNote: json['courier_note'] as String?,
+        signatureUrl: json['signature_url'] as String?,
+        canReview: json['can_review'] as bool? ?? false,
         photos: (json['photos'] as List? ?? const []).whereType<String>().toList(),
         requestId: json['request_id'] as int?,
       );

@@ -17,6 +17,7 @@ import '../../widgets/delivery_map.dart';
 import '../../widgets/deadline_chip.dart';
 import '../../widgets/photos.dart';
 import '../../widgets/status_chip.dart';
+import '../../widgets/signature_pad.dart';
 
 /// Détail d'une livraison pour le livreur : carte A/B, itinéraires Google Maps, contacts, étapes.
 class CourierDeliveryScreen extends StatefulWidget {
@@ -148,23 +149,40 @@ class _CourierDeliveryScreenState extends State<CourierDeliveryScreen> with Widg
   }
 
   Future<void> _advance(String status, String confirmText) async {
-    final ok = await showDialog<bool>(
+    final note = TextEditingController();
+    final signatureKey = GlobalKey<SignaturePadState>();
+    var missingSignature = false;
+    final result = await showDialog<Map<String, String>?>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => StatefulBuilder(builder: (context, refresh) => AlertDialog(
         title: const Text('Confirmation'),
-        content: Text(confirmText),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(confirmText), const SizedBox(height: 12),
+          if (status == DeliveryStatus.delivered) SignaturePad(key: signatureKey),
+          if (missingSignature) const Text('La signature du destinataire est nécessaire pour terminer la course.', style: TextStyle(color: AppColors.error)),
+          TextField(controller: note, maxLines: 2, decoration: const InputDecoration(labelText: 'Note de course (facultatif)')),
+        ])),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirmer')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          ElevatedButton(onPressed: () async {
+            if (status == DeliveryStatus.delivered && !(signatureKey.currentState?.hasSignature ?? false)) {
+              refresh(() => missingSignature = true);
+              return;
+            }
+            final signature = await signatureKey.currentState?.pngDataUrl() ?? '';
+            if (!context.mounted) return;
+            Navigator.pop(context, {'signature': signature, 'note': note.text});
+          }, child: const Text('Confirmer')),
         ],
-      ),
+      )),
     );
-    if (ok != true || !mounted) return;
+    note.dispose();
+    if (result == null || !mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _updating = true);
     try {
-      final d = await context.read<DeliveryService>().updateCourierStatus(_delivery!.id, status);
+      final d = await context.read<DeliveryService>().updateCourierStatus(_delivery!.id, status, note: result['note'], signature: result['signature']?.isEmpty == true ? null : result['signature']);
       if (!mounted) return;
       setState(() => _delivery = d);
       messenger.showSnackBar(SnackBar(content: Text(d.statusLabel), backgroundColor: AppColors.success));
@@ -173,6 +191,22 @@ class _CourierDeliveryScreenState extends State<CourierDeliveryScreen> with Widg
     } finally {
       if (mounted) setState(() => _updating = false);
     }
+  }
+
+  Future<void> _cancelCourse(Delivery delivery) async {
+    final reason = TextEditingController(), note = TextEditingController();
+    final result = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+      title: const Text('Annuler cette course ?'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: reason, maxLength: 255, decoration: const InputDecoration(labelText: 'Motif obligatoire')), TextField(controller: note, maxLines: 2, decoration: const InputDecoration(labelText: 'Note complémentaire'))]),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Retour')), ElevatedButton(onPressed: () => Navigator.pop(context, reason.text.trim().isNotEmpty), child: const Text('Annuler la course'))],
+    ));
+    if (result != true || !mounted) { reason.dispose(); note.dispose(); return; }
+    try {
+      final updated = await context.read<DeliveryService>().cancelCourierDelivery(delivery.id, reason: reason.text.trim(), note: note.text.trim());
+      if (mounted) setState(() => _delivery = updated);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Course annulée. L’agence pourra la reprogrammer.')));
+    } on ApiException catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message))); }
+    finally { reason.dispose(); note.dispose(); }
   }
 
   @override
@@ -322,6 +356,7 @@ class _CourierDeliveryScreenState extends State<CourierDeliveryScreen> with Widg
 
     return BottomActionBar(
       children: [
+        Align(alignment: Alignment.centerLeft, child: TextButton.icon(onPressed: _updating ? null : () => _cancelCourse(d), icon: const Icon(Icons.cancel_outlined, color: AppColors.error), label: const Text('Annuler cette course', style: TextStyle(color: AppColors.error)))),
         Row(
           children: [
             OutlinedButton.icon(

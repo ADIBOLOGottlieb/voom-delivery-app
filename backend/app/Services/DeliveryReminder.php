@@ -80,7 +80,7 @@ class DeliveryReminder
             'assigned' => ['Livreur assigné 🛵', ($delivery->courier?->name ?? 'Un livreur')." s'occupe de votre livraison {$ref}."],
             'picked_up' => ['Colis récupéré', "Votre colis {$ref} a été récupéré et est en route."],
             'delivered' => ['Colis livré ✅', "La livraison {$ref} est terminée. Merci d'avoir choisi VOOM Delivery !"],
-            'cancelled' => ['Livraison annulée', "La livraison {$ref} a été annulée par l'agence".($detail ? " : {$detail}" : '').'.'
+            'cancelled' => ['Livraison annulée', "La livraison {$ref} a été annulée".($detail ? " : {$detail}" : '').'.'
                 .($delivery->needsRefund() ? ' Votre paiement vous sera remboursé.' : '')],
         };
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Subcategory;
+use App\Models\Media;
 use App\Support\Phone;
 use App\Support\StoredImage;
 use Illuminate\Http\RedirectResponse;
@@ -67,6 +68,7 @@ class ProductController extends Controller
         if ($request->hasFile('image')) {
             $data['image_path'] = StoredImage::store($request->file('image'));
         }
+        if ($request->hasFile('video')) $data['video_media_id'] = Media::fromUpload($request->file('video'))->id;
 
         DB::transaction(function () use ($data, $items) {
             $product = Product::create($data);
@@ -84,15 +86,18 @@ class ProductController extends Controller
     public function update(Request $request, Product $product): RedirectResponse
     {
         [$data, $items] = $this->validated($request, $product);
+        $oldVideoId = $request->hasFile('video') ? $product->video_media_id : null;
         if ($request->hasFile('image')) {
             StoredImage::delete($product->image_path);
             $data['image_path'] = StoredImage::store($request->file('image'));
         }
+        if ($request->hasFile('video')) $data['video_media_id'] = Media::fromUpload($request->file('video'))->id;
 
         DB::transaction(function () use ($product, $data, $items) {
             $product->update($data);
             $product->packItems()->sync($product->isPack() ? $items : []);
         });
+        if ($oldVideoId) Media::whereKey($oldVideoId)->delete();
 
         return redirect()->route('admin.products.index')->with('success', 'Enregistré.');
     }
@@ -106,8 +111,10 @@ class ProductController extends Controller
             return back()->with('success', 'Déjà commandé : désactivé au lieu d\'être supprimé.');
         }
 
+        $videoId = $product->video_media_id;
         StoredImage::delete($product->image_path);
         $product->delete();
+        if ($videoId) Media::whereKey($videoId)->delete();
 
         return back()->with('success', 'Supprimé.');
     }
@@ -139,6 +146,7 @@ class ProductController extends Controller
             'pickup_lat' => ['required', 'numeric', 'between:-90,90'],
             'pickup_lng' => ['required', 'numeric', 'between:-180,180'],
             'image' => ['nullable', 'image', 'max:4096'],
+            'video' => ['nullable', 'file', 'mimetypes:video/mp4,video/webm,video/quicktime', 'max:8192'],
             'items' => ['nullable', 'array'],
             'items.*' => ['nullable', 'integer', 'min:0', 'max:999'],
         ]);
@@ -153,7 +161,7 @@ class ProductController extends Controller
             throw ValidationException::withMessages(['items' => 'Un pack doit contenir au moins un produit (quantité > 0).']);
         }
 
-        unset($data['image'], $data['items']);
+        unset($data['image'], $data['video'], $data['items']);
         if (! empty($data['vendor_phone'])) {
             if (! Phone::isValid($data['vendor_phone'])) {
                 throw ValidationException::withMessages(['vendor_phone' => 'Numéro du vendeur invalide.']);

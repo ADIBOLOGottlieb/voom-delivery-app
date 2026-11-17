@@ -133,6 +133,14 @@ class DeliveryService {
 
   Future<Delivery> courierDelivery(int id) async => _one(await _api.get('/courier/deliveries/$id'));
 
-  Future<Delivery> updateCourierStatus(int id, String status) async =>
-      _one(await _api.post('/courier/deliveries/$id/status', {'status': status}));
+  Future<Delivery> updateCourierStatus(int id, String status, {String? note, String? signature}) async =>
+      _one(await _api.post('/courier/deliveries/$id/status', {'status': status, if (note != null && note.isNotEmpty) 'note': note, if (signature != null) 'signature': signature}));
+
+  Future<Delivery> cancelCourierDelivery(int id, {required String reason, String? note}) async =>
+      _one(await _api.post('/courier/deliveries/$id/cancel', {'reason': reason, if (note != null) 'note': note}));
+
+  Future<void> sendCourierLocation(double lat, double lng) async => _api.post('/courier/location', {'lat': lat, 'lng': lng});
+
+  Future<void> reviewCourier(int id, int rating, String? comment) async =>
+      _api.post('/deliveries/$id/review', {'rating': rating, if (comment != null && comment.isNotEmpty) 'comment': comment});
 }

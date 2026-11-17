@@ -78,6 +78,11 @@ class DeliveryResource extends JsonResource
             'delivered_at' => $this->delivered_at?->toIso8601String(),
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
             'cancel_reason' => $this->cancel_reason,
+            'courier_note' => $this->courier_note,
+            'cancellation_actor' => $this->cancellation_actor,
+            'signature_url' => $this->signature?->url(),
+            'signed_at' => $this->signed_at?->toIso8601String(),
+            'can_review' => $this->status->value === 'delivered' && $this->courier_id && ! $this->review()->exists(),
         ];
     }
 }

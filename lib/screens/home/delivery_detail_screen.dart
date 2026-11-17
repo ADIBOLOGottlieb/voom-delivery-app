@@ -125,6 +125,24 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
     }
   }
 
+  Future<void> _reviewCourier(Delivery d) async {
+    var rating = 5;
+    final comment = TextEditingController();
+    final ok = await showDialog<bool>(context: context, builder: (context) => StatefulBuilder(builder: (context, refresh) => AlertDialog(
+      title: const Text('Évaluer le livreur'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        Wrap(spacing: 2, children: List.generate(5, (i) => IconButton(onPressed: () => refresh(() => rating = i + 1), icon: Icon(i < rating ? Icons.star : Icons.star_border, color: Colors.amber)))),
+        TextField(controller: comment, maxLines: 3, maxLength: 1000, decoration: const InputDecoration(labelText: 'Votre avis (facultatif)')),
+      ]),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Plus tard')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Envoyer'))],
+    )));
+    if (ok == true && mounted) {
+      try { await context.read<DeliveryService>().reviewCourier(d.id, rating, comment.text.trim()); await _load(); }
+      on ApiException catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message))); }
+    }
+    comment.dispose();
+  }
+
   /// Photos des articles ajoutées après la création (tant que le colis n'est pas récupéré).
   Future<void> _addPhotos({required bool multiple}) async {
     final d = _delivery;
@@ -265,6 +283,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                           ),
                         ),
                       ),
+                      if (d.canReview) Card(child: ListTile(leading: const Icon(Icons.star_rate, color: Colors.amber), title: const Text('Votre livraison est terminée'), subtitle: const Text('Notez votre livreur'), trailing: const Icon(Icons.chevron_right), onTap: () => _reviewCourier(d))),
                     ],
                   ),
                 )),

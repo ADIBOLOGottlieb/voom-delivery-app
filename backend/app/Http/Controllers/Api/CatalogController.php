@@ -30,7 +30,7 @@ class CatalogController extends Controller
         ]);
 
         $products = Product::query()
-            ->with('packItems')
+            ->with(['packItems', 'video'])
             ->where('is_active', true)
             ->when($data['category'] ?? null, fn ($q, $c) => $q->where('category', $c))
             ->when($data['subcategory_id'] ?? null, fn ($q, $s) => $q->where('subcategory_id', $s))

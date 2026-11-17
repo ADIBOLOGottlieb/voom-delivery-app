@@ -4,7 +4,7 @@
 
 @section('content')
     <h1>Politique de confidentialité</h1>
-    <p class="muted">Application mobile et service VOOM Delivery · dernière mise à jour : 18 octobre 2026</p>
+    <p class="muted">Application mobile et service VOOM Delivery · dernière mise à jour : 17 novembre 2026</p>
 
     <h2>Responsable du traitement</h2>
     <p><strong>VOOM Delivery</strong>, agence de livraison à Lomé, Togo. Pour toute question sur vos données :</p>
@@ -21,8 +21,10 @@
             et capture d'écran de la transaction.</li>
         <li><strong>Messages</strong> : contenu de la discussion avec l'agence (texte, photos, position partagée).</li>
         <li><strong>Notifications</strong> : jeton de notification de votre téléphone (Firebase Cloud Messaging).</li>
+        <li><strong>Localisation des livreurs</strong> : pendant toute la connexion à l’espace livreur, la position GPS est transmise périodiquement à l’agence afin qu’elle puisse suivre les livreurs actifs. Le partage s’arrête à la déconnexion ; les positions de plus de deux minutes ne sont plus affichées comme actives.</li>
+        <li><strong>Remise et avis</strong> : signature du destinataire lors de la confirmation de remise du colis, note et commentaire facultatif du client après la livraison.</li>
     </ul>
-    <p>Nous ne collectons ni vos contacts, ni votre position en arrière-plan : une position n'est envoyée que lorsque vous la choisissez.</p>
+    <p>Nous ne collectons pas vos contacts. Le suivi de position en arrière-plan concerne uniquement les livreurs connectés qui ont autorisé l’accès à la localisation.</p>
 
     <h2>Pourquoi nous les utilisons</h2>
     <ul>
@@ -31,6 +33,7 @@
         <li>Vérifier vos paiements et éviter qu'une même transaction serve deux fois.</li>
         <li>Vous prévenir de l'avancement de vos livraisons et, si vous l'acceptez, des promotions.</li>
         <li>Vous envoyer un code par email si vous oubliez votre mot de passe.</li>
+        <li>Permettre à l’agence de suivre les livreurs connectés et de vérifier la remise d’un colis.</li>
         <li>Respecter nos obligations comptables.</li>
     </ul>
 

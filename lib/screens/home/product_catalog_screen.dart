@@ -9,6 +9,7 @@ import '../../models/product.dart';
 import '../../services/delivery_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/formatters.dart';
+import '../../utils/launchers.dart';
 import '../../widgets/paged_loader.dart';
 import '../../widgets/skeleton.dart';
 import 'delivery_detail_screen.dart';
@@ -494,6 +495,10 @@ class _ProductSheetState extends State<_ProductSheet> {
             if (p.description != null) ...[
               const SizedBox(height: 8),
               Text(p.description!),
+            ],
+            if (p.isPack && p.videoUrl != null) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(onPressed: () => openWebPage(context, p.videoUrl!), icon: const Icon(Icons.play_circle_outline), label: const Text('Voir la vidéo du pack')),
             ],
             if (p.items.isNotEmpty) ...[
               const SizedBox(height: 12),

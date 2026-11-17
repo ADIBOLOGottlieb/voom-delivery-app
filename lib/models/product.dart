@@ -25,6 +25,7 @@ class Product {
   final int price;
   final String? unit;
   final String? imageUrl;
+  final String? videoUrl;
   final String? vendorName;
   final String pickupAddress;
   final List<PackItem> items;
@@ -39,6 +40,7 @@ class Product {
     required this.price,
     this.unit,
     this.imageUrl,
+    this.videoUrl,
     this.vendorName,
     required this.pickupAddress,
     this.items = const [],
@@ -56,6 +58,7 @@ class Product {
         price: json['price'] as int,
         unit: json['unit'] as String?,
         imageUrl: json['image_url'] as String?,
+        videoUrl: json['video_url'] as String?,
         vendorName: json['vendor_name'] as String?,
         pickupAddress: json['pickup_address'] as String,
         items: ((json['items'] as List?) ?? const []).map((e) => PackItem.fromJson(e as Map<String, dynamic>)).toList(),

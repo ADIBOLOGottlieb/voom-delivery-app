@@ -1,0 +1,6 @@
+@extends('layouts.admin')
+@section('title', $expense->exists ? 'Modifier dépense' : 'Ajouter dépense')
+@section('content')
+<h1 class="text-2xl font-bold mb-4">{{ $expense->exists ? 'Modifier la dépense' : 'Nouvelle dépense' }}</h1><form method="POST" action="{{ $expense->exists ? route('admin.expenses.update', $expense) : route('admin.expenses.store') }}" class="bg-white p-6 rounded max-w-xl space-y-4">@csrf @if($expense->exists)@method('PUT')@endif
+<label class="block">Motif<input required name="reason" value="{{ old('reason', $expense->reason) }}" class="block w-full border rounded px-3 py-2"></label><label class="block">Date<input required type="date" name="spent_on" value="{{ old('spent_on', $expense->spent_on?->format('Y-m-d') ?? now()->format('Y-m-d')) }}" class="block w-full border rounded px-3 py-2"></label><label class="block">Bénéficiaire<input required name="recipient" value="{{ old('recipient', $expense->recipient) }}" class="block w-full border rounded px-3 py-2"></label><label class="block">Montant FCFA<input required type="number" min="1" name="amount" value="{{ old('amount', $expense->amount) }}" class="block w-full border rounded px-3 py-2"></label><button class="bg-black text-voom px-5 py-2 rounded">Enregistrer</button></form>
+@endsection

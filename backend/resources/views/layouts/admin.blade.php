@@ -19,8 +19,13 @@
         $nav = [
             ['admin.dashboard', 'Tableau de bord', 'admin.dashboard'],
             ['admin.deliveries.index', 'Livraisons', 'admin.deliveries.*'],
+            ['admin.deliveries.cancelled', 'Colis annulés', 'admin.deliveries.cancelled'],
             ['admin.requests.index', 'Demandes', 'admin.requests.*'],
             ['admin.couriers.index', 'Livreurs', 'admin.couriers.*'],
+            ['admin.couriers.locations', 'Suivi livreurs', 'admin.couriers.locations'],
+            ['admin.couriers.stats', 'Stats livreurs', 'admin.couriers.stats'],
+            ['admin.reviews.index', 'Avis', 'admin.reviews.*'],
+            ['admin.expenses.index', 'Dépenses', 'admin.expenses.*'],
             ['admin.clients.index', 'Clients', 'admin.clients.*'],
             ['admin.products.index', 'Courses alimentaires', 'admin.products.*'],
             ['admin.promotions.index', 'Promos', 'admin.promotions.*'],

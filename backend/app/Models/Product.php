@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 /** Produit de la marketplace, ou pack (type = pack) composé de plusieurs produits. */
 #[Fillable([
     'category', 'subcategory_id', 'type', 'name', 'description', 'price', 'unit', 'image_path',
-    'vendor_name', 'vendor_phone', 'pickup_address', 'pickup_lat', 'pickup_lng', 'is_active',
+    'vendor_name', 'vendor_phone', 'pickup_address', 'pickup_lat', 'pickup_lng', 'is_active', 'video_media_id',
 ])]
 class Product extends Model
 {
@@ -63,4 +63,6 @@ class Product extends Model
     {
         return $this->image_path !== null && ! str_starts_with($this->image_path, 'catalog/');
     }
+
+    public function video(): BelongsTo { return $this->belongsTo(Media::class, 'video_media_id'); }
 }

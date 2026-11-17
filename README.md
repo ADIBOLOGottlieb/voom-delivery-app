@@ -127,6 +127,17 @@ Tests : `flutter test` · analyse : `flutter analyze`.
 
 ## API (préfixe `/api/v1`, jeton `Authorization: Bearer …`)
 
+## Fonctions opérationnelles ajoutées
+
+- Après remise, le destinataire signe sur l’écran du livreur ; la course ne peut pas être confirmée sans signature. Le client peut ensuite noter le livreur (1 à 5 étoiles) et ajouter un avis.
+- Un livreur peut annuler une course active avec un motif et une note. L’admin retrouve les courses annulées dans **Admin → Colis annulés**, puis peut les reprogrammer à une nouvelle date ou les supprimer définitivement.
+- **Admin → Stats livreurs** affiche le nombre de courses livrées et annulées par le livreur pour le mois sélectionné, ainsi que sa moyenne d’avis. Les périodes sont calculées depuis l’historique, sans remise à zéro.
+- **Admin → Dépenses** permet de saisir un motif, une date, un bénéficiaire et un montant en FCFA.
+- Pendant toute sa connexion, le livreur peut partager sa position en arrière-plan ; Android affiche la notification du service de localisation. L’agence voit les positions récentes dans **Admin → Suivi livreurs**. La permission de localisation doit être accordée ; les positions de plus de deux minutes ne sont plus listées.
+- Un pack peut avoir une vidéo MP4, WebM ou MOV de 8 Mo maximum. Le client l’ouvre depuis la fiche du pack.
+
+La migration `2026_11_18_100000_add_delivery_operations_features.php` est appliquée au prochain démarrage Render par `php artisan migrate --force`.
+
 | Méthode | Route | Rôle | Description |
 |---|---|---|---|
 | POST | `/register` | public | Inscription client |

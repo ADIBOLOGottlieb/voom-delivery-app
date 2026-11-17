@@ -100,6 +100,14 @@
             <input type="file" name="image" accept="image/*">
         </div>
 
+        @if ($isPack)
+            <div>
+                <label class="block text-sm font-medium mb-1">Vidéo du pack (MP4, WebM ou MOV, 8 Mo max)</label>
+                @if ($product->video)<a class="text-blue-700 underline" href="{{ $product->video->url() }}" target="_blank">Voir la vidéo actuelle</a>@endif
+                <input type="file" name="video" accept="video/mp4,video/webm,video/quicktime">
+            </div>
+        @endif
+
         <label class="flex items-center gap-2">
             <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $product->is_active))>
             Visible dans l'application

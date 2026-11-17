@@ -1,0 +1,5 @@
+@extends('layouts.admin')
+@section('title', 'Suivi des livreurs')
+@section('content')
+<h1 class="text-2xl font-bold mb-2">Suivi des livreurs connectés</h1><p class="text-sm text-gray-600 mb-4">Dernière position reçue. L’actualisation de la page relit les positions.</p><div class="bg-white rounded shadow-sm overflow-x-auto"><table class="w-full"><thead><tr class="text-left border-b"><th class="p-3">Livreur</th><th>Position mise à jour</th><th>Coordonnées</th><th>Carte</th></tr></thead><tbody>@forelse($couriers as $c)<tr class="border-b"><td class="p-3">{{ $c->name }} · {{ $c->phone_number }}</td><td>{{ $c->location_updated_at?->format('d/m/Y H:i:s') }}</td><td>{{ $c->last_lat }}, {{ $c->last_lng }}</td><td><a class="underline text-blue-700" target="_blank" href="https://www.openstreetmap.org/?mlat={{ $c->last_lat }}&mlon={{ $c->last_lng }}#map=16/{{ $c->last_lat }}/{{ $c->last_lng }}">Voir la carte</a></td></tr>@empty<tr><td colspan="4" class="p-6">Aucune position reçue.</td></tr>@endforelse</tbody></table></div><script>setTimeout(()=>location.reload(),30000)</script>
+@endsection

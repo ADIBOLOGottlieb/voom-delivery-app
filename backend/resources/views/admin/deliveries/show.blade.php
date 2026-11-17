@@ -67,6 +67,8 @@
                     @endif
                     <dt class="text-gray-500">Description</dt><dd>{{ $delivery->package_description ?: '—' }}</dd>
                     <dt class="text-gray-500">Notes</dt><dd>{{ $delivery->notes ?: '—' }}</dd>
+                    @if ($delivery->courier_note)<dt class="text-gray-500">Notes du livreur</dt><dd class="whitespace-pre-line">{{ $delivery->courier_note }}</dd>@endif
+                    @if ($delivery->signature)<dt class="text-gray-500">Signature destinataire</dt><dd><a href="{{ $delivery->signature->url() }}" target="_blank"><img src="{{ $delivery->signature->url() }}" alt="Signature du destinataire" class="h-20 border rounded bg-white"></a> · {{ $delivery->signed_at?->format('d/m/Y H:i') }}</dd>@endif
                     @if ($delivery->scheduled_at)
                         <dt class="text-gray-500">Programmée pour</dt><dd>{{ $delivery->scheduled_at->format('d/m/Y H:i') }}</dd>
                     @endif

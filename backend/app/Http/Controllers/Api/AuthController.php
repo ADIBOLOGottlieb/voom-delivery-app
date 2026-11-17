@@ -117,7 +117,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->forceFill(['fcm_token' => null])->save();
+        $request->user()->forceFill(['fcm_token' => null, 'last_lat' => null, 'last_lng' => null, 'location_updated_at' => null])->save();
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Déconnecté.']);
